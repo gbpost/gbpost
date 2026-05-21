@@ -1,0 +1,1227 @@
+<!--
+================================================================================
+  우체국 계약소포 요금 계산기
+  기준: 우체국 계약소포 요금표 (26.4.15. 기준)
+================================================================================
+  [버전 이력]
+  ※ 수정 시 아래에 날짜(YYMMDD) 기준으로 버전을 추가하세요.
+
+  ver260515 | 2026-05-15 | 초기 배포판
+    - 20kg·30kg 구간 감액 불가 처리
+    - 섹션 C: 본부장(청장) 추가 감액 직접 입력 기능 추가
+    - 섹션 B: 신규/장기(1년·3년) 감액 및 계약기간별 한도액 적용
+      (신규 500원 / 1년이상 550원 / 3년이상 600원)
+    - 기본요금표를 첫 페이지에서 제거 → 헤더 '기본요금 확인' 버튼 모달로 이동
+    - 기본요금 모달에 100,000통↑ 행 및 규격 cm 정보 추가
+
+  ver260516 | 2026-05-16 | iOS Safari 호환성 수정
+    - 모달 표시 방식 교체: hidden+flex Tailwind 토글 → CSS .modal-overlay/.is-open 방식
+      (Safari에서 display:none 위에 flex 추가 시 무시되는 버그 해결)
+    - bg-gray-50/60 등 opacity slash 문법 제거 (구형 Safari 미지원)
+    - 헤더 버튼 bg-white/20 등을 인라인 rgba()로 교체
+    - 이미지 저장: iOS Safari link.click() 미지원 → window.open() 새 탭으로 대체
+
+  ver______ | 20YY-MM-DD | (다음 수정자 작성란)
+    - 변경 내용을 여기에 기술하세요.
+================================================================================
+-->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>우체국 계약소포 요금 계산기 ver260515</title>
+    <style>
+
+/* === Tailwind 인라인 대체 CSS (인앱브라우저 호환) === */
+*,::before,::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}
+html{line-height:1.5;-webkit-text-size-adjust:100%}
+body{margin:0;font-family:'Noto Sans KR',sans-serif;background-color:#f3f4f6;-webkit-tap-highlight-color:transparent}
+h1,h2,h3,h4,p{margin:0}
+button,input,select,textarea{font-family:inherit;font-size:100%;margin:0;padding:0}
+button{cursor:pointer;background:transparent;border:none}
+table{border-collapse:collapse;border-spacing:0}
+img,svg{display:block;vertical-align:middle}
+a{color:inherit;text-decoration:inherit}
+
+/* display */
+.block{display:block}.inline-flex{display:inline-flex}.flex{display:-webkit-flex;display:flex}.grid{display:grid}.hidden{display:none}
+/* flex */
+.flex-col{-webkit-flex-direction:column;flex-direction:column}
+.flex-1{-webkit-flex:1 1 0%;flex:1 1 0%}
+.flex-\[1\]{-webkit-flex:1;flex:1}
+.flex-\[2\]{-webkit-flex:2;flex:2}
+.flex-shrink-0{-webkit-flex-shrink:0;flex-shrink:0}
+.shrink-0{-webkit-flex-shrink:0;flex-shrink:0}
+.items-center{-webkit-align-items:center;align-items:center}
+.justify-center{-webkit-justify-content:center;justify-content:center}
+.justify-between{-webkit-justify-content:space-between;justify-content:space-between}
+/* grid */
+.grid-cols-1{grid-template-columns:repeat(1,minmax(0,1fr))}
+.grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.col-span-2{grid-column:span 2/span 2}
+/* gap */
+.gap-1{gap:0.25rem}.gap-1\.5{gap:0.375rem}.gap-2{gap:0.5rem}.gap-3{gap:0.75rem}
+/* position */
+.relative{position:relative}.absolute{position:absolute}.sticky{position:-webkit-sticky;position:sticky}
+.fixed{position:fixed}
+.inset-0{top:0;right:0;bottom:0;left:0}
+.inset-y-0{top:0;bottom:0}
+.top-0{top:0}.top-4{top:1rem}.right-0{right:0}.right-4{right:1rem}
+.left-0{left:0}.bottom-0{bottom:0}
+/* z */
+.z-10{z-index:10}.z-50{z-index:50}
+/* overflow */
+.overflow-hidden{overflow:hidden}.overflow-x-auto{overflow-x:auto}.overflow-y-auto{overflow-y:auto}
+/* width/height */
+.w-3{width:0.75rem}.w-5{width:1.25rem}.w-6{width:1.5rem}.w-7{width:1.75rem}
+.w-12{width:3rem}.w-16{width:4rem}.w-full{width:100%}
+.h-1{height:0.25rem}.h-3{height:0.75rem}.h-5{height:1.25rem}.h-6{height:1.5rem}
+.h-7{height:1.75rem}.h-12{height:3rem}
+.max-w-sm{max-width:24rem}.max-w-md{max-width:28rem}.max-w-lg{max-width:32rem}.max-w-xl{max-width:36rem}
+.min-w-0{min-width:0}
+/* margin */
+.m-0{margin:0}
+.mx-4{margin-left:1rem;margin-right:1rem}.mx-auto{margin-left:auto;margin-right:auto}
+.mt-0\.5{margin-top:0.125rem}.mt-1{margin-top:0.25rem}.mt-2{margin-top:0.5rem}
+.mt-3{margin-top:0.75rem}.mt-4{margin-top:1rem}.mt-5{margin-top:1.25rem}.mt-8{margin-top:2rem}
+.mb-0\.5{margin-bottom:0.125rem}.mb-1{margin-bottom:0.25rem}.mb-1\.5{margin-bottom:0.375rem}
+.mb-2{margin-bottom:0.5rem}.mb-3{margin-bottom:0.75rem}.mb-4{margin-bottom:1rem}
+.mb-5{margin-bottom:1.25rem}.mb-6{margin-bottom:1.5rem}
+.ml-1{margin-left:0.25rem}.ml-3{margin-left:0.75rem}
+.mr-1{margin-right:0.25rem}.mr-2{margin-right:0.5rem}
+/* padding */
+.p-0{padding:0}.p-1{padding:0.25rem}.p-1\.5{padding:0.375rem}.p-2{padding:0.5rem}
+.p-3{padding:0.75rem}.p-4{padding:1rem}.p-5{padding:1.25rem}.p-6{padding:1.5rem}
+.px-1{padding-left:0.25rem;padding-right:0.25rem}.px-2{padding-left:0.5rem;padding-right:0.5rem}
+.px-3{padding-left:0.75rem;padding-right:0.75rem}.px-4{padding-left:1rem;padding-right:1rem}
+.px-5{padding-left:1.25rem;padding-right:1.25rem}
+.py-0\.5{padding-top:0.125rem;padding-bottom:0.125rem}.py-1{padding-top:0.25rem;padding-bottom:0.25rem}
+.py-2{padding-top:0.5rem;padding-bottom:0.5rem}.py-2\.5{padding-top:0.625rem;padding-bottom:0.625rem}
+.py-3{padding-top:0.75rem;padding-bottom:0.75rem}
+.pt-2{padding-top:0.5rem}.pt-3{padding-top:0.75rem}.pt-5{padding-top:1.25rem}
+.pb-3{padding-bottom:0.75rem}.pb-5{padding-bottom:1.25rem}.pb-6{padding-bottom:1.5rem}.pb-10{padding-bottom:2.5rem}
+.pl-4{padding-left:1rem}.pr-1{padding-right:0.25rem}.pr-8{padding-right:2rem}
+/* border */
+.border{border-width:1px}.border-2{border-width:2px}.border-b{border-bottom-width:1px}
+.border-b-2{border-bottom-width:2px}.border-t{border-top-width:1px}.border-r{border-right-width:1px}
+.border-collapse{border-collapse:collapse}
+.border-dashed{border-style:dashed}
+.border-gray-100{border-color:#f3f4f6}.border-gray-200{border-color:#e5e7eb}
+.border-gray-300{border-color:#d1d5db}.border-gray-600{border-color:#4b5563}
+.border-blue-200{border-color:#bfdbfe}.border-blue-300{border-color:#93c5fd}
+.border-red-200{border-color:#fecaca}.border-red-400{border-color:#f87171}
+.border-red-500{border-color:#ef4444}.border-white{border-color:#fff}
+/* rounded */
+.rounded{border-radius:0.25rem}.rounded-lg{border-radius:0.5rem}.rounded-md{border-radius:0.375rem}
+.rounded-xl{border-radius:0.75rem}.rounded-2xl{border-radius:1rem}.rounded-full{border-radius:9999px}
+.rounded-b-2xl{border-bottom-left-radius:1rem;border-bottom-right-radius:1rem}
+/* shadow */
+.shadow{box-shadow:0 1px 3px 0 rgba(0,0,0,.1),0 1px 2px -1px rgba(0,0,0,.1)}
+.shadow-sm{box-shadow:0 1px 2px 0 rgba(0,0,0,.05)}
+.shadow-md{box-shadow:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -2px rgba(0,0,0,.1)}
+.shadow-xl{box-shadow:0 20px 25px -5px rgba(0,0,0,.1),0 8px 10px -6px rgba(0,0,0,.1)}
+/* text size */
+.text-xs{font-size:0.75rem;line-height:1rem}.text-sm{font-size:0.875rem;line-height:1.25rem}
+.text-base{font-size:1rem;line-height:1.5rem}.text-lg{font-size:1.125rem;line-height:1.75rem}
+.text-xl{font-size:1.25rem;line-height:1.75rem}.text-2xl{font-size:1.5rem;line-height:2rem}
+.text-\[9px\]{font-size:9px}.text-\[10px\]{font-size:10px}.text-\[11px\]{font-size:11px}
+.text-\[12px\]{font-size:12px}.text-\[13px\]{font-size:13px}.text-\[14px\]{font-size:14px}
+.text-\[15px\]{font-size:15px}.text-\[16px\]{font-size:16px}
+/* font weight */
+.font-normal{font-weight:400}.font-medium{font-weight:500}.font-bold{font-weight:700}.font-black{font-weight:900}
+/* text color */
+.text-white{color:#fff}.text-gray-300{color:#d1d5db}.text-gray-400{color:#9ca3af}
+.text-gray-500{color:#6b7280}.text-gray-600{color:#4b5563}.text-gray-700{color:#374151}
+.text-gray-800{color:#1f2937}.text-gray-900{color:#111827}
+.text-red-300{color:#fca5a5}.text-red-400{color:#f87171}.text-red-500{color:#ef4444}
+.text-red-600{color:#dc2626}.text-red-700{color:#b91c1c}.text-red-800{color:#991b1b}
+.text-blue-500{color:#3b82f6}.text-blue-600{color:#2563eb}.text-blue-700{color:#1d4ed8}
+.text-blue-800{color:#1e40af}
+.text-\[\#ffe812\]{color:#ffe812}
+/* text align */
+.text-left{text-align:left}.text-center{text-align:center}.text-right{text-align:right}
+/* text decoration */
+.line-through{text-decoration:line-through}
+/* tracking */
+.tracking-tight{letter-spacing:-0.025em}.tracking-tighter{letter-spacing:-0.05em}
+/* leading */
+.leading-tight{line-height:1.25}.leading-relaxed{line-height:1.625}
+/* bg colors */
+.bg-white{background-color:#fff}.bg-gray-50{background-color:#f9fafb}
+.bg-gray-100{background-color:#f3f4f6}.bg-gray-200{background-color:#e5e7eb}
+.bg-gray-800{background-color:#1f2937}.bg-gray-900{background-color:#111827}
+.bg-blue-50{background-color:#eff6ff}.bg-blue-600{background-color:#2563eb}
+.bg-red-50{background-color:#fef2f2}.bg-red-500{background-color:#ef4444}
+.bg-red-600{background-color:#dc2626}
+/* opacity */
+.opacity-60{opacity:0.6}.opacity-70{opacity:0.7}.opacity-80{opacity:0.8}
+/* whitespace */
+.whitespace-nowrap{white-space:nowrap}
+/* cursor */
+.cursor-pointer{cursor:pointer}
+/* pointer events */
+.pointer-events-none{pointer-events:none}
+/* list */
+.list-disc{list-style-type:disc}
+/* space-y */
+.space-y-1>*+*{margin-top:0.25rem}.space-y-4>*+*{margin-top:1rem}
+/* divide */
+.divide-y>*+*{border-top-width:1px}
+.divide-gray-100>*+*{border-color:#f3f4f6}
+.divide-gray-200>*+*{border-color:#e5e7eb}
+/* appearance */
+.appearance-none{-webkit-appearance:none;appearance:none}
+/* transition */
+.transition{transition-property:color,background-color,border-color,fill,stroke,opacity,box-shadow,transform;transition-duration:150ms}
+.transition-all{transition-property:all;transition-duration:150ms}
+.transition-opacity{transition-property:opacity;transition-duration:150ms}
+/* animate */
+.animate-spin{animation:spin 1s linear infinite}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+/* fill */
+.fill-current{fill:currentColor}
+/* active */
+.active\:scale-95:active{transform:scale(0.95)}
+/* hover */
+.hover\:bg-gray-50:hover{background-color:#f9fafb}
+.hover\:bg-gray-100:hover{background-color:#f3f4f6}
+.hover\:bg-gray-300:hover{background-color:#d1d5db}
+.hover\:bg-gray-800:hover{background-color:#1f2937}
+.hover\:bg-red-100:hover{background-color:#fee2e2}
+.hover\:bg-red-700:hover{background-color:#b91c1c}
+.hover\:text-gray-700:hover{color:#374151}
+/* focus */
+.focus\:outline-none:focus{outline:none}
+.focus\:border-blue-500:focus{border-color:#3b82f6}
+.focus\:border-red-500:focus{border-color:#ef4444}
+.focus\:ring-1:focus{box-shadow:0 0 0 1px}
+.focus\:ring-2:focus{box-shadow:0 0 0 2px}
+.focus\:ring-blue-200:focus{box-shadow:0 0 0 2px #bfdbfe}
+.focus\:ring-red-200:focus{box-shadow:0 0 0 2px #fecaca}
+.focus\:bg-white:focus{background-color:#fff}
+/* important overrides */
+.\!mb-0{margin-bottom:0!important}.\!p-3{padding:0.75rem!important}
+.\!mr-2{margin-right:0.5rem!important}.\!w-5{width:1.25rem!important}.\!h-5{height:1.25rem!important}
+
+        body { font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; background-color: #f3f4f6; -webkit-tap-highlight-color: transparent; }
+        .red-gradient { background: linear-gradient(135deg, #e02b20 0%, #b91c1c 100%); }
+        .blue-gradient { background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%); }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* ── 모달: Safari에서 hidden+flex 충돌 방지 ── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 50;
+            -webkit-overflow-scrolling: touch;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem 0.25rem;
+        }
+        .modal-overlay.is-open {
+            display: -webkit-flex;
+            display: flex;
+        }
+        
+        /* 커스텀 체크박스 스타일 */
+        .checkbox-wrapper input[type="checkbox"] { display: none; }
+        .checkbox-wrapper label { display: flex; align-items: center; cursor: pointer; padding: 12px; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; transition: all 0.2s ease; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); height: 100%; box-sizing: border-box; }
+        .checkbox-wrapper label .checkmark { width: 22px; height: 22px; border: 2px solid #d1d5db; border-radius: 6px; margin-right: 10px; display: flex; justify-content: center; align-items: center; transition: all 0.2s ease; flex-shrink: 0; }
+        .checkbox-wrapper input[type="checkbox"]:checked + label { border-color: #e02b20; background-color: #fff5f5; }
+        .checkbox-wrapper input[type="checkbox"]:checked + label .checkmark { background-color: #e02b20; border-color: #e02b20; }
+        .checkbox-wrapper input[type="checkbox"]:checked + label .checkmark::after { content: '✓'; color: white; font-weight: bold; font-size: 13px; }
+
+        /* 파란색(한도제외) 체크박스 스타일 */
+        .checkbox-wrapper.blue input[type="checkbox"]:checked + label { border-color: #2563eb; background-color: #eff6ff; }
+        .checkbox-wrapper.blue input[type="checkbox"]:checked + label .checkmark { background-color: #2563eb; border-color: #2563eb; }
+    </style>
+    <!-- html2canvas: 외부 브라우저에서만 동작, 인앱브라우저는 graceful 무시 -->
+    <script>
+    (function(){
+        var s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+        s.onerror = function(){ window._h2cFailed = true; };
+        document.head.appendChild(s);
+    })();
+    </script>
+</head>
+<body class="text-gray-800 pb-10">
+
+    <!-- 캡처 영역 시작 (이미지로 저장될 전체 영역) -->
+    <div id="captureArea" class="bg-gray-100 pb-5">
+        
+        <header class="red-gradient text-white p-5 shadow-md rounded-b-2xl">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-black tracking-tight mb-0.5">📦 우체국 계약소포</h1>
+                    <p class="text-xs font-bold opacity-80">(26.4.15.)기준</p>
+                    <p class="text-[11px] font-medium opacity-70 mt-0.5">영업 마케터용 맞춤 단가표 <span class="opacity-60">ver260515</span></p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="openSettingsModal()" class="flex-shrink-0 flex flex-col items-center justify-center active:scale-95 transition-all rounded-xl px-3 py-2 shadow-sm" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4)">
+                        <span class="text-lg">⚙️</span>
+                        <span class="text-[11px] font-black tracking-tight mt-0.5">설정</span>
+                        <span class="text-[10px] font-bold opacity-80">우체국</span>
+                    </button>
+                    <button onclick="openBaseRateModal()" class="flex-shrink-0 flex flex-col items-center justify-center active:scale-95 transition-all rounded-xl px-3 py-2 shadow-sm" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4)">
+                        <span class="text-lg">📊</span>
+                        <span class="text-[11px] font-black tracking-tight mt-0.5">기본요금</span>
+                        <span class="text-[10px] font-bold opacity-80">확인</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- 저장 시 캡처 이미지 상단에 노출될 업체 정보 (평소에는 숨김) -->
+        <div id="captureHeader" class="hidden bg-white p-4 mx-4 mt-4 rounded-xl shadow border border-red-200 text-center relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
+            <p class="text-[12px] text-gray-500 font-bold mb-1">제안 업체 정보</p>
+            <h2 id="captureCompanyInfo" class="text-xl font-black text-gray-900 tracking-tight"></h2>
+        </div>
+
+        <main class="px-4 mt-5">
+            
+            <!-- 2. 시뮬레이션 설정 -->
+            <section>
+                <h2 class="text-xl font-black text-gray-800 mb-4 flex items-center">
+                    <span class="bg-red-600 text-white w-6 h-6 rounded-full inline-flex items-center justify-center text-sm mr-2 shadow">🎯</span>
+                    단가 시뮬레이션 설정
+                </h2>
+                
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 mb-5">
+                    <label class="block text-sm font-bold text-gray-700 mb-2">월 발송물량 선택 <span class="text-[11px] font-normal text-red-500 ml-1">(감액조건 자동변경)</span></label>
+                    <div class="relative">
+                        <select id="volumeSelect" onchange="calculateRate()" class="block w-full appearance-none bg-red-50 border-2 border-red-500 text-red-700 font-black py-3 px-4 pr-8 rounded-xl leading-tight focus:outline-none focus:bg-white focus:ring-2 focus:ring-red-200 transition-all text-lg cursor-pointer">
+                            <option value="100">100통 이상</option>
+                            <option value="300">300통 이상 (방문픽업 가능)</option>
+                            <option value="500">500통 이상</option>
+                            <option value="1000" selected>1,000통 이상 (기본)</option>
+                            <option value="3000">3,000통 이상</option>
+                            <option value="5000">5,000통 이상</option>
+                            <option value="10000">10,000통 이상</option>
+                            <option value="20000">20,000통 이상</option>
+                            <option value="30000">30,000통 이상</option>
+                            <option value="50000">50,000통 이상</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-red-500">
+                            <svg class="fill-current h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-6 space-y-4">
+                    <!-- 섹션 A: 기본 적용 감액 -->
+                    <div>
+                        <h3 class="text-sm font-bold text-gray-700 mb-2 px-1">A. 기본 적용 감액 <span class="text-[11px] font-normal text-gray-500">(중복체크 가능)</span></h3>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="checkbox-wrapper m-0">
+                                <input type="checkbox" id="chkSys" onchange="calculateRate()" checked>
+                                <label for="chkSys" class="!mb-0 !p-3">
+                                    <div class="checkmark !w-5 !h-5 !mr-2"></div>
+                                    <div class="flex-1">
+                                        <p class="font-bold text-gray-800 text-xs">계약전용시스템</p>
+                                        <p class="text-[10px] text-red-500 font-bold">-100원</p>
+                                    </div>
+                                </label>
+                            </div>
+                            <div class="checkbox-wrapper m-0">
+                                <input type="checkbox" id="chkBar" onchange="calculateRate()" checked>
+                                <label for="chkBar" class="!mb-0 !p-3">
+                                    <div class="checkmark !w-5 !h-5 !mr-2"></div>
+                                    <div class="flex-1">
+                                        <p class="font-bold text-gray-800 text-xs tracking-tight">집배코드/구분코스</p>
+                                        <p class="text-[10px] text-red-500 font-bold">-50원</p>
+                                    </div>
+                                </label>
+                            </div>
+                            <div class="checkbox-wrapper m-0">
+                                <input type="checkbox" id="chkDrop200" onchange="toggleExclusiveGroup('chkDrop200', ['chkDrop400'])">
+                                <label for="chkDrop200" class="!mb-0 !p-3">
+                                    <div class="checkmark !w-5 !h-5 !mr-2"></div>
+                                    <div class="flex-1">
+                                        <p class="font-bold text-gray-800 text-xs tracking-tight">우체국 직접운송</p>
+                                        <p class="text-[10px] text-red-500 font-bold">-200원</p>
+                                    </div>
+                                </label>
+                            </div>
+                            <div class="checkbox-wrapper m-0">
+                                <input type="checkbox" id="chkDrop400" onchange="toggleExclusiveGroup('chkDrop400', ['chkDrop200'])">
+                                <label for="chkDrop400" class="!mb-0 !p-3">
+                                    <div class="checkmark !w-5 !h-5 !mr-2"></div>
+                                    <div class="flex-1">
+                                        <p class="font-bold text-gray-800 text-xs tracking-tight">집중국 직접운송</p>
+                                        <p class="text-[10px] text-red-500 font-bold">-400원</p>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 섹션 B: 마케팅 추가 감액 -->
+                    <div id="advDiscountWrapper" class="transition-opacity pt-2 border-t border-gray-200">
+                        <h3 class="text-sm font-bold text-gray-700 mb-2 px-1">B. 마케팅 추가 감액 <span class="text-[11px] font-normal text-red-500">(300통 미만 시 비활성화)</span></h3>
+                        <div class="bg-gray-50 p-3 rounded-xl border border-gray-200">
+
+                            <!-- 계약기간 선택 -->
+                            <div class="mb-3">
+                                <h4 class="text-[12px] font-bold text-gray-700 mb-2">계약기간 <span class="text-[10px] font-normal text-gray-500">(감액금액·한도액 자동변경)</span></h4>
+                                <div class="grid grid-cols-3 gap-1.5">
+                                    <label id="periodLabelNew" class="cursor-pointer text-center text-[11px] font-bold py-2 px-1 rounded-lg border-2 border-red-400 bg-red-50 text-red-700 transition-all">
+                                        <input type="radio" name="contractPeriod" value="new" class="hidden" checked onchange="calculateRate()">
+                                        신규<br><span class="text-[10px] font-normal text-gray-500">(1년 미만)</span><br><span class="text-red-500 font-black">한도 500원</span>
+                                    </label>
+                                    <label id="periodLabelLong1" class="cursor-pointer text-center text-[11px] font-bold py-2 px-1 rounded-lg border-2 border-gray-200 bg-white text-gray-500 transition-all">
+                                        <input type="radio" name="contractPeriod" value="long1" class="hidden" onchange="calculateRate()">
+                                        장기<br><span class="text-[10px] font-normal text-gray-500">(1년 이상)</span><br><span class="text-blue-500 font-black">한도 550원</span>
+                                    </label>
+                                    <label id="periodLabelLong3" class="cursor-pointer text-center text-[11px] font-bold py-2 px-1 rounded-lg border-2 border-gray-200 bg-white text-gray-500 transition-all">
+                                        <input type="radio" name="contractPeriod" value="long3" class="hidden" onchange="calculateRate()">
+                                        장기<br><span class="text-[10px] font-normal text-gray-500">(3년 이상)</span><br><span class="text-blue-500 font-black">한도 600원</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- 신규/장기 감액 (동적 처리) -->
+                            <div class="border-t border-gray-200 border-dashed pt-3 mb-3">
+                                <p id="newDiscEmpty" class="text-[11px] text-gray-500 font-bold py-1 hidden">발송물량 1,000통 이상부터 적용 가능합니다.</p>
+
+                                <!-- 신규 감액 -->
+                                <div id="newDiscContainer" class="checkbox-wrapper m-0 mb-1.5 hidden">
+                                    <input type="checkbox" id="chkNew" onchange="calculateRate()">
+                                    <label for="chkNew" class="!mb-0 !p-3">
+                                        <div class="checkmark !w-5 !h-5 !mr-2"></div>
+                                        <div class="flex-1 flex justify-between items-center">
+                                            <div>
+                                                <p class="font-bold text-gray-800 text-xs tracking-tight">신규고객 감액 <span class="text-[9px] text-gray-400">(1년 미만)</span></p>
+                                                <p id="lblNewDesc" class="text-[10px] text-gray-500"></p>
+                                            </div>
+                                            <p id="lblNewAmt" class="text-[12px] text-red-600 font-black">-0원</p>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <!-- 장기(1년) 감액 -->
+                                <div id="long1DiscContainer" class="checkbox-wrapper m-0 mb-1.5 hidden">
+                                    <input type="checkbox" id="chkLong1" onchange="calculateRate()">
+                                    <label for="chkLong1" class="!mb-0 !p-3">
+                                        <div class="checkmark !w-5 !h-5 !mr-2"></div>
+                                        <div class="flex-1 flex justify-between items-center">
+                                            <div>
+                                                <p class="font-bold text-gray-800 text-xs tracking-tight">장기고객 감액 <span class="text-[9px] text-gray-400">(1년 이상)</span></p>
+                                                <p id="lblLong1Desc" class="text-[10px] text-gray-500"></p>
+                                            </div>
+                                            <p id="lblLong1Amt" class="text-[12px] text-blue-600 font-black">-0원</p>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <!-- 장기(3년) 감액 -->
+                                <div id="long3DiscContainer" class="checkbox-wrapper m-0 hidden">
+                                    <input type="checkbox" id="chkLong3" onchange="calculateRate()">
+                                    <label for="chkLong3" class="!mb-0 !p-3">
+                                        <div class="checkmark !w-5 !h-5 !mr-2"></div>
+                                        <div class="flex-1 flex justify-between items-center">
+                                            <div>
+                                                <p class="font-bold text-gray-800 text-xs tracking-tight">장기고객 감액 <span class="text-[9px] text-gray-400">(3년 이상)</span></p>
+                                                <p id="lblLong3Desc" class="text-[10px] text-gray-500"></p>
+                                            </div>
+                                            <p id="lblLong3Amt" class="text-[12px] text-blue-600 font-black">-0원</p>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- 국장/청장 특별감액 -->
+                            <div class="checkbox-wrapper m-0 pt-2 border-t border-gray-200 border-dashed">
+                                <input type="checkbox" id="chkSpecial" onchange="calculateRate()">
+                                <label for="chkSpecial" class="!mb-0 !p-3">
+                                    <div class="checkmark !w-5 !h-5 !mr-2"></div>
+                                    <div class="flex-1 flex justify-between items-center">
+                                        <p id="lblSpecialTitle" class="font-bold text-gray-800 text-sm tracking-tight">총괄국장 감액 (1만통 미만)</p>
+                                        <p class="text-[12px] text-red-600 font-black">-200원</p>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 한도 안내 패널 -->
+                    <div class="flex justify-between items-center bg-gray-800 text-white px-4 py-3 rounded-xl shadow-sm mt-3">
+                        <div class="flex flex-col">
+                            <span class="text-[11px] text-gray-300">A, B그룹 적용 한도 <span id="capPeriodLabel" class="text-[#ffe812] font-bold">(신규)</span></span>
+                            <span class="text-[14px] font-bold text-[#ffe812]">최대 <span id="capDisplayMax">500</span>원</span>
+                        </div>
+                        <div class="text-right flex flex-col justify-center">
+                            <span class="text-[11px] text-gray-300">실제 적용된 감액 <span id="capStatusLabel" class="text-[#ffe812] font-bold ml-1"></span></span>
+                            <span class="text-[16px] font-black text-red-400">-<span id="capDisplayActual">0</span>원</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 섹션 C: 감액한도 제외 -->
+                <div class="mb-6 pt-2 border-t border-gray-300 border-dashed">
+                    <h3 class="text-sm font-bold text-blue-800 mb-2 px-1 flex items-center">
+                        <span class="bg-blue-600 text-white px-2 py-0.5 rounded text-[10px] mr-2 shadow-sm">무제한</span>
+                        C. 감액한도 제외 항목
+                    </h3>
+                    <div class="grid grid-cols-1 gap-2 bg-blue-50 p-3 rounded-xl border border-blue-200">
+                        <div id="ultraDiscWrapper" class="checkbox-wrapper blue m-0">
+                            <input type="checkbox" id="chkUltra100" onchange="calculateRate()">
+                            <label for="chkUltra100" class="!mb-0 !p-3">
+                                <div class="checkmark !w-5 !h-5 !mr-2"></div>
+                                <div class="flex-1 flex justify-between items-center">
+                                    <div>
+                                        <p class="font-bold text-gray-800 text-xs tracking-tight">초소형 소포 감액</p>
+                                        <p id="lblUltraDesc" class="text-[10px] text-gray-500 tracking-tight">오직 '초소형' 구간 요금에만 적용</p>
+                                    </div>
+                                    <p class="text-[12px] text-blue-600 font-black">-100원</p>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div class="checkbox-wrapper blue m-0">
+                            <input type="checkbox" id="chkSosang" onchange="calculateRate()">
+                            <label for="chkSosang" class="!mb-0 !p-3">
+                                <div class="checkmark !w-5 !h-5 !mr-2"></div>
+                                <div class="flex-1 flex justify-between items-center">
+                                    <div>
+                                        <p class="font-bold text-gray-800 text-xs tracking-tight">소상공인 감액</p>
+                                        <p class="text-[10px] text-gray-500 tracking-tight">초소형, 2kg, 5kg 구간 한정 감액</p>
+                                    </div>
+                                    <p id="lblSosangAmt" class="text-[12px] text-blue-600 font-black">물량별 차등</p>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- 본부장(청장) 추가 감액 -->
+                        <div class="bg-white rounded-xl border border-blue-200 p-3 flex items-center gap-3">
+                            <div class="flex items-center gap-2 flex-1 min-w-0">
+                                <div class="w-5 h-5 rounded-md bg-blue-600 flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"/></svg>
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="font-bold text-gray-800 text-xs tracking-tight">본부장(청장) 추가 감액</p>
+                                    <p class="text-[10px] text-gray-500 tracking-tight">한도 제외 · 전 구간 적용</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1 flex-shrink-0">
+                                <span class="text-[12px] text-blue-600 font-black">-</span>
+                                <input type="number" id="inputBonbu" min="0" max="9999" step="10" value="0"
+                                    oninput="calculateRate()"
+                                    class="w-16 text-center text-[13px] font-black text-blue-700 border-2 border-blue-300 rounded-lg py-1 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 bg-blue-50"
+                                    placeholder="0">
+                                <span class="text-[12px] text-blue-600 font-black">원</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. 시뮬레이션 결과 표 (한눈에 보기) -->
+                <div class="mt-8 mb-4">
+                    <h3 class="text-lg font-black text-gray-800 mb-2 flex items-center">
+                        <span class="bg-red-600 text-white w-6 h-6 rounded-full inline-flex items-center justify-center text-sm mr-2 shadow">💡</span>
+                        최종 시뮬레이션 결과
+                    </h3>
+                    
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        <table class="w-full text-center whitespace-nowrap">
+                            <thead>
+                                <tr class="bg-gray-800 text-white text-[12px] border-b border-gray-200">
+                                    <th class="py-2.5 px-1 font-medium">규격</th>
+                                    <th class="py-2.5 px-1 font-medium">기본요금</th>
+                                    <th class="py-2.5 px-1 font-medium">적용감액</th>
+                                    <th class="py-2.5 px-1 font-black text-[#ffe812]">최종단가</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resultTableBody" class="text-sm">
+                                <!-- 자바스크립트로 자동 생성됩니다. -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- 문의처 표시 (이미지 저장 시 표시, 평소엔 숨김) -->
+            <div id="captureFooter" class="hidden mx-4 mb-4 mt-2">
+                <div style="background:#dc2626;border-radius:0.75rem;padding:0.75rem 1rem;display:flex;align-items:center;justify-content:space-between;">
+                    <span style="color:white;font-size:11px;font-weight:700;opacity:0.9;">문의처</span>
+                    <span id="captureFooterText" style="color:#ffe812;font-size:13px;font-weight:900;letter-spacing:-0.02em;text-align:right;"></span>
+                </div>
+            </div>
+
+        </main>
+    </div>
+    <!-- 캡처 영역 끝 -->
+
+    <!-- 하단 기능 버튼 모음 -->
+    <div class="px-4 pb-6 grid grid-cols-2 gap-2 mt-2 max-w-lg mx-auto">
+        <button onclick="openMiniPage()" class="flex items-center justify-center bg-red-50 text-red-700 border border-red-200 text-[13px] font-bold py-3 px-1 rounded-xl shadow-sm hover:bg-red-100 transition active:scale-95 cursor-pointer tracking-tight">
+            <span class="text-base mr-1">🏷️</span> 미니소포 요금
+        </button>
+        <button onclick="openRulesModal()" class="flex items-center justify-center bg-gray-50 text-gray-800 border border-gray-300 text-[13px] font-bold py-3 px-1 rounded-xl shadow-sm hover:bg-gray-100 transition active:scale-95 cursor-pointer tracking-tight">
+            <span class="text-base mr-1">📜</span> 계약소포 규정
+        </button>
+        <button onclick="openCaptureModal()" class="col-span-2 flex items-center justify-center bg-gray-900 text-white text-[15px] font-black py-3 px-2 rounded-xl shadow-xl hover:bg-gray-800 transition active:scale-95 cursor-pointer mt-1">
+            <span class="text-xl mr-2">📸</span> 시뮬레이션 이미지 저장
+        </button>
+    </div>
+
+    <!-- 기본요금 확인 모달 -->
+    <div id="baseRateModal" class="modal-overlay">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-xl relative flex flex-col" style="max-height:95vh">
+            <div class="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100 shrink-0">
+                <div>
+                    <h3 class="text-lg font-black text-gray-800">우체국 계약소포 기본요금표</h3>
+                    <p class="text-[12px] text-gray-500 font-bold mt-0.5">(26.4.15. 기준) &nbsp;·&nbsp; 가로로 밀어보세요 👉</p>
+                </div>
+                <button onclick="closeBaseRateModal()" class="text-gray-400 hover:text-gray-700 ml-3 shrink-0">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="overflow-y-auto hide-scrollbar flex-1 px-3 py-3">
+                <div class="overflow-x-auto hide-scrollbar">
+                    <table class="w-full text-center whitespace-nowrap text-[14px]">
+                        <thead>
+                            <tr class="bg-gray-800 text-white">
+                                <th class="py-3 px-3 font-bold sticky left-0 bg-gray-800 z-10 border-r border-gray-600 text-[13px]">물량(월)</th>
+                                <th class="py-3 px-3 font-bold text-red-300">2kg 이하<br><span class="text-[11px] font-normal text-gray-400">(90cm)</span></th>
+                                <th class="py-3 px-3 font-bold text-red-300">5kg 이하<br><span class="text-[11px] font-normal text-gray-400">(100cm)</span></th>
+                                <th class="py-3 px-3 font-bold">10kg 이하<br><span class="text-[11px] font-normal text-gray-400">(120cm)</span></th>
+                                <th class="py-3 px-3 font-bold text-gray-400">20kg 이하<br><span class="text-[11px] font-normal text-gray-400">(140cm)</span></th>
+                                <th class="py-3 px-3 font-bold text-gray-400">30kg 이하<br><span class="text-[11px] font-normal text-gray-400">(160cm)</span></th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <tr class="bg-white hover:bg-gray-50">
+                                <td class="py-2.5 px-3 font-bold sticky left-0 bg-white border-r border-gray-200 text-gray-700">100통↑</td>
+                                <td class="py-2.5 px-3 font-bold text-red-600">3,050원</td><td class="py-2.5 px-3 font-bold text-red-600">3,300원</td><td class="py-2.5 px-3">3,800원</td><td class="py-2.5 px-3 text-gray-400">7,300원</td><td class="py-2.5 px-3 text-gray-400">10,300원</td>
+                            </tr>
+                            <tr class="bg-gray-50 hover:bg-gray-100">
+                                <td class="py-2.5 px-3 font-bold sticky left-0 bg-gray-50 border-r border-gray-200 text-gray-700">300통↑</td>
+                                <td class="py-2.5 px-3 font-bold text-red-600">2,950원</td><td class="py-2.5 px-3 font-bold text-red-600">3,200원</td><td class="py-2.5 px-3">3,700원</td><td class="py-2.5 px-3 text-gray-400">7,200원</td><td class="py-2.5 px-3 text-gray-400">10,200원</td>
+                            </tr>
+                            <tr class="bg-white hover:bg-gray-50">
+                                <td class="py-2.5 px-3 font-bold sticky left-0 bg-white border-r border-gray-200 text-gray-700">500통↑</td>
+                                <td class="py-2.5 px-3 font-bold text-red-600">2,850원</td><td class="py-2.5 px-3 font-bold text-red-600">3,100원</td><td class="py-2.5 px-3">3,600원</td><td class="py-2.5 px-3 text-gray-400">7,100원</td><td class="py-2.5 px-3 text-gray-400">10,100원</td>
+                            </tr>
+                            <tr class="bg-red-50 hover:bg-red-100">
+                                <td class="py-2.5 px-3 font-black sticky left-0 bg-red-50 border-r border-red-200 text-red-700">1,000통↑</td>
+                                <td class="py-2.5 px-3 font-black text-red-700">2,750원</td><td class="py-2.5 px-3 font-black text-red-700">3,000원</td><td class="py-2.5 px-3 font-bold">3,500원</td><td class="py-2.5 px-3 text-gray-400">7,000원</td><td class="py-2.5 px-3 text-gray-400">10,000원</td>
+                            </tr>
+                            <tr class="bg-white hover:bg-gray-50">
+                                <td class="py-2.5 px-3 font-bold sticky left-0 bg-white border-r border-gray-200 text-gray-700">3,000통↑</td>
+                                <td class="py-2.5 px-3 font-bold text-red-600">2,650원</td><td class="py-2.5 px-3 font-bold text-red-600">2,900원</td><td class="py-2.5 px-3">3,400원</td><td class="py-2.5 px-3 text-gray-400">6,900원</td><td class="py-2.5 px-3 text-gray-400">9,900원</td>
+                            </tr>
+                            <tr class="bg-gray-50 hover:bg-gray-100">
+                                <td class="py-2.5 px-3 font-bold sticky left-0 bg-gray-50 border-r border-gray-200 text-gray-700">5,000통↑</td>
+                                <td class="py-2.5 px-3 font-bold text-red-600">2,600원</td><td class="py-2.5 px-3 font-bold text-red-600">2,850원</td><td class="py-2.5 px-3">3,350원</td><td class="py-2.5 px-3 text-gray-400">6,850원</td><td class="py-2.5 px-3 text-gray-400">9,850원</td>
+                            </tr>
+                            <tr class="bg-white hover:bg-gray-50">
+                                <td class="py-2.5 px-3 font-bold sticky left-0 bg-white border-r border-gray-200 text-gray-700">10,000통↑</td>
+                                <td class="py-2.5 px-3 font-bold text-red-600">2,550원</td><td class="py-2.5 px-3 font-bold text-red-600">2,800원</td><td class="py-2.5 px-3">3,300원</td><td class="py-2.5 px-3 text-gray-400">6,800원</td><td class="py-2.5 px-3 text-gray-400">9,800원</td>
+                            </tr>
+                            <tr class="bg-gray-50 hover:bg-gray-100">
+                                <td class="py-2.5 px-3 font-bold sticky left-0 bg-gray-50 border-r border-gray-200 text-gray-700">20,000통↑</td>
+                                <td class="py-2.5 px-3 font-bold text-red-600">2,500원</td><td class="py-2.5 px-3 font-bold text-red-600">2,750원</td><td class="py-2.5 px-3">3,250원</td><td class="py-2.5 px-3 text-gray-400">6,750원</td><td class="py-2.5 px-3 text-gray-400">9,750원</td>
+                            </tr>
+                            <tr class="bg-white hover:bg-gray-50">
+                                <td class="py-2.5 px-3 font-bold sticky left-0 bg-white border-r border-gray-200 text-gray-700">30,000통↑</td>
+                                <td class="py-2.5 px-3 font-bold text-red-600">2,450원</td><td class="py-2.5 px-3 font-bold text-red-600">2,700원</td><td class="py-2.5 px-3">3,200원</td><td class="py-2.5 px-3 text-gray-400">6,700원</td><td class="py-2.5 px-3 text-gray-400">9,700원</td>
+                            </tr>
+                            <tr class="bg-gray-50 hover:bg-gray-100">
+                                <td class="py-2.5 px-3 font-bold sticky left-0 bg-gray-50 border-r border-gray-200 text-gray-700">50,000통↑</td>
+                                <td class="py-2.5 px-3 font-bold text-red-600">2,400원</td><td class="py-2.5 px-3 font-bold text-red-600">2,650원</td><td class="py-2.5 px-3">3,150원</td><td class="py-2.5 px-3 text-gray-400">6,650원</td><td class="py-2.5 px-3 text-gray-400">9,650원</td>
+                            </tr>
+                            <tr class="bg-white hover:bg-gray-50">
+                                <td class="py-2.5 px-3 font-bold sticky left-0 bg-white border-r border-gray-200 text-gray-700">100,000통↑</td>
+                                <td class="py-2.5 px-3 font-bold text-red-600">2,350원</td><td class="py-2.5 px-3 font-bold text-red-600">2,600원</td><td class="py-2.5 px-3">3,100원</td><td class="py-2.5 px-3 text-gray-400">6,600원</td><td class="py-2.5 px-3 text-gray-400">9,600원</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-[11px] text-gray-500 mt-3 px-1 leading-relaxed">※ 20kg·30kg 구간은 감액 적용 불가 / 2kg·5kg 이하(빨간색)는 소상공인 감액 적용 가능 구간</p>
+            </div>
+            <div class="px-5 pb-5 pt-2 shrink-0">
+                <button onclick="closeBaseRateModal()" class="w-full bg-red-600 text-white font-bold py-3 rounded-xl hover:bg-red-700 active:scale-95 transition-all text-[15px]">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 미니소포 요금표 모달 -->
+    <div id="miniRateModal" class="modal-overlay">
+        <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md relative">
+            <button onclick="closeMiniRateModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <h3 class="text-xl font-black text-gray-800 mb-1">우체국 미니소포 요금표</h3>
+            <p class="text-sm text-gray-600 mb-4 font-bold tracking-tight">500g 이하, 45cm 이하 (우편함 투입 가능 크기)</p>
+            <div class="overflow-x-auto">
+                <table class="w-full text-center border-collapse border border-gray-300 bg-white shadow-sm mb-5">
+                    <thead>
+                        <tr class="bg-red-50 text-gray-800 text-[11px] font-bold">
+                            <th class="border border-gray-300 py-2 px-1">1,000통 미만</th>
+                            <th class="border border-gray-300 py-2 px-1">1,000통 이상</th>
+                            <th class="border border-gray-300 py-2 px-1">5,000통 이상</th>
+                            <th class="border border-gray-300 py-2 px-1">10,000통 이상</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="text-[15px] font-black">
+                            <td class="border border-gray-300 py-3 text-red-600">1,700원</td>
+                            <td class="border border-gray-300 py-3 text-red-600">1,600원</td>
+                            <td class="border border-gray-300 py-3 text-red-600">1,500원</td>
+                            <td class="border border-gray-300 py-3 text-red-600">1,400원</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <button onclick="closeMiniRateModal()" class="w-full bg-red-600 text-white font-bold py-3 rounded-xl hover:bg-red-700">확인</button>
+        </div>
+    </div>
+
+    <!-- 계약소포 규정 팝업 모달 -->
+    <div id="rulesModal" class="modal-overlay">
+        <div class="bg-white p-5 rounded-2xl shadow-xl w-full max-w-md relative flex flex-col max-h-full">
+            <button onclick="closeRulesModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 z-10 bg-white rounded-full">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <h3 class="text-xl font-black text-gray-800 mb-1 shrink-0">우체국 계약소포 규정</h3>
+            <p class="text-sm text-gray-600 mb-4 font-bold tracking-tight shrink-0 border-b pb-3">추가감액, 부가이용료 및 적용 방법</p>
+            
+            <div class="overflow-y-auto hide-scrollbar flex-1 pr-1">
+                <!-- Ⅰ. 요금 추가 감액기준표 -->
+                <h4 class="text-[14px] font-black text-red-600 mb-2 mt-1">Ⅰ. 요금 추가 감액기준표</h4>
+                <table class="w-full text-left border-collapse border border-gray-300 text-[11px] mb-5 tracking-tight">
+                    <tbody class="divide-y divide-gray-200">
+                        <tr class="bg-gray-50"><td class="font-bold border border-gray-300 p-1.5 text-gray-800" colspan="2">1. 우편물</td></tr>
+                        <tr><td class="border border-gray-300 p-1.5">가. 우체국 계약고객전용시스템 이용</td><td class="border border-gray-300 p-1.5 text-center text-red-600 font-bold whitespace-nowrap">100원 이하</td></tr>
+                        <tr><td class="border border-gray-300 p-1.5">나. 고객운송 (우체국/집중국)</td><td class="border border-gray-300 p-1.5 text-center text-red-600 font-bold whitespace-nowrap">200원 / 400원 이하</td></tr>
+                        <tr><td class="border border-gray-300 p-1.5">다. 계약소포 간편접수</td><td class="border border-gray-300 p-1.5 text-center text-red-600 font-bold whitespace-nowrap">30원 이하</td></tr>
+                        <tr><td class="border border-gray-300 p-1.5">라. 집배코드·구분코스 인쇄</td><td class="border border-gray-300 p-1.5 text-center text-red-600 font-bold whitespace-nowrap">50원 이하</td></tr>
+                        <tr class="bg-gray-50"><td class="font-bold border border-gray-300 p-1.5 text-gray-800" colspan="2">2. 신규 (1년 이내) 및 3. 장기 (1년/3년 이상)</td></tr>
+                        <tr>
+                            <td class="border border-gray-300 p-0" colspan="2">
+                                <table class="w-full text-[10px] text-center bg-white border-collapse m-0">
+                                    <tr class="bg-gray-100 text-gray-600">
+                                        <th class="border-b border-r border-gray-300 p-1.5">발송물량</th>
+                                        <th class="border-b border-r border-gray-300 p-1.5">신규(1년 미만)</th>
+                                        <th class="border-b border-r border-gray-300 p-1.5">장기(1년 이상)</th>
+                                        <th class="border-b border-gray-300 p-1.5">장기(3년 이상)</th>
+                                    </tr>
+                                    <tr>
+                                        <td class="border-b border-r border-gray-300 p-1 font-bold">1,000통~</td>
+                                        <td class="border-b border-r border-gray-300 p-1 text-red-600 font-bold">50원 이하</td>
+                                        <td class="border-b border-r border-gray-300 p-1 text-blue-600 font-bold">100원 이하</td>
+                                        <td class="border-b border-gray-300 p-1 text-blue-600 font-bold">150원 이하</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="border-b border-r border-gray-300 p-1 font-bold">10,000통~</td>
+                                        <td class="border-b border-r border-gray-300 p-1 text-red-600 font-bold">100원 이하</td>
+                                        <td class="border-b border-r border-gray-300 p-1 text-blue-600 font-bold">150원 이하</td>
+                                        <td class="border-b border-gray-300 p-1 text-blue-600 font-bold">200원 이하</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="border-b border-r border-gray-300 p-1 font-bold">20,000통~</td>
+                                        <td class="border-b border-r border-gray-300 p-1 text-red-600 font-bold">150원 이하</td>
+                                        <td class="border-b border-r border-gray-300 p-1 text-blue-600 font-bold">200원 이하</td>
+                                        <td class="border-b border-gray-300 p-1 text-blue-600 font-bold">250원 이하</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="border-r border-gray-300 p-1 font-bold">30,000통~</td>
+                                        <td class="border-r border-gray-300 p-1 text-red-600 font-bold">200원 이하</td>
+                                        <td class="border-r border-gray-300 p-1 text-blue-600 font-bold">250원 이하</td>
+                                        <td class="p-1 text-blue-600 font-bold">300원 이하</td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        <tr class="bg-gray-50"><td class="font-bold border border-gray-300 p-1.5 text-gray-800" colspan="2">4. 초소형</td></tr>
+                        <tr><td class="border border-gray-300 p-1.5">사. 중량이 1kg 이하이고 크기가 50cm이하</td><td class="border border-gray-300 p-1.5 text-center text-red-600 font-bold whitespace-nowrap">100원 이하</td></tr>
+                        <tr class="bg-gray-50"><td class="font-bold border border-gray-300 p-1.5 text-gray-800" colspan="2">5. 특별감액</td></tr>
+                        <tr><td class="border border-gray-300 p-1.5">아. 지방우정청장 (월 10,000통 이상)<br>자. 총괄국장 (월 10,000통 미만)</td><td class="border border-gray-300 p-1.5 text-center text-red-600 font-bold whitespace-nowrap">200원 이하</td></tr>
+                        <tr><td class="border border-gray-300 p-1.5">차. 소상공인 감액 (2kg, 5kg이하 구간)<br><span class="text-[10px] text-gray-500">(100통 / 10,000통 / 20,000통 이상)</span></td><td class="border border-gray-300 p-1.5 text-center text-red-600 font-bold">200원 / 150원 / 100원 이하</td></tr>
+                        <tr class="bg-red-50"><td class="font-black border border-red-200 p-2 text-red-800 text-center" colspan="2">6. 감액 한도액<br><span class="text-red-600 font-bold">1년 미만: 500원 / 1년 이상: 550원 / 3년 이상: 600원</span></td></tr>
+                    </tbody>
+                </table>
+
+                <!-- Ⅱ. 부가이용료 기준표 -->
+                <h4 class="text-[14px] font-black text-gray-800 mb-2">Ⅱ. 부가이용료 기준표</h4>
+                <table class="w-full text-left border-collapse border border-gray-300 text-[11px] mb-5 tracking-tight">
+                    <tbody class="divide-y divide-gray-200">
+                        <tr><td class="border border-gray-300 p-1.5">1. 포장재질이 아이스박스인 경우</td><td class="border border-gray-300 p-1.5 text-center text-blue-600 font-bold whitespace-nowrap">100원 이상</td></tr>
+                        <tr><td class="border border-gray-300 p-1.5">2. 픽업환경 (노동강도, 승강기 유무 등)</td><td class="border border-gray-300 p-1.5 text-center text-blue-600 font-bold whitespace-nowrap">100원 이상</td></tr>
+                        <tr><td class="border border-gray-300 p-1.5">3. 도서행 (제주행 포함)</td><td class="border border-gray-300 p-1.5 text-center text-blue-600 font-bold whitespace-nowrap">400원 이상</td></tr>
+                        <tr><td class="border border-gray-300 p-1.5">4. 다수지 계약의 경우 집하지 수</td><td class="border border-gray-300 p-1.5 text-center text-blue-600 font-bold whitespace-nowrap">50~400원 인상</td></tr>
+                        <tr><td class="border border-gray-300 p-1.5">5. 수기운송장 사용</td><td class="border border-gray-300 p-1.5 text-center text-blue-600 font-bold whitespace-nowrap">500원 이상</td></tr>
+                        <tr><td class="border border-gray-300 p-1.5">6. 고중량 소포(10kg·120cm 초과) 비중</td><td class="border border-gray-300 p-1.5 text-center text-blue-600 font-bold whitespace-nowrap">50~400원 이상</td></tr>
+                        <tr><td class="border border-gray-300 p-1.5">7. 오규격률</td><td class="border border-gray-300 p-1.5 text-center text-blue-600 font-bold whitespace-nowrap">50원 이상</td></tr>
+                    </tbody>
+                </table>
+
+                <!-- Ⅲ. 적용 방법 -->
+                <h4 class="text-[14px] font-black text-gray-800 mb-2">Ⅲ. 추가감액 및 부가이용료 적용 방법</h4>
+                <ul class="list-disc pl-4 text-[11px] text-gray-700 space-y-1 mb-2 font-medium tracking-tight">
+                    <li>양립할 수 없는 감액조건에 대한 중복 감액 불가</li>
+                    <li>장기이용 감액은 최초 계약일로부터 1년이 경과된 날부터 적용하며, 신규이용 감액과 중복 불가</li>
+                    <li>감액요금은 방문시간, 취급장소 등 취급조건을 고려하여 감액요금 한도액 범위 내에서 10원 단위 적용 가능(원 단위 이하 절사)</li>
+                    <li>계약우편관서를 변경하더라도 계약기간 중에는 감액 가능</li>
+                    <li>연간계약 변경 시 기존 계약기간을 포함한 장기이용고객 감액 적용 가능</li>
+                </ul>
+            </div>
+
+            <button onclick="closeRulesModal()" class="w-full bg-gray-900 text-white font-bold py-3 rounded-xl hover:bg-gray-800 mt-4 shrink-0">확인</button>
+        </div>
+    </div>
+
+    <!-- 이미지 저장 시 업체정보 입력 모달 -->
+    <div id="captureModal" class="modal-overlay">
+        <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-sm">
+            <h3 class="text-lg font-black text-gray-800 mb-2">제안받는 업체 정보 입력</h3>
+            <p class="text-[12px] text-gray-500 mb-4">입력하신 정보가 이미지 상단에 표시됩니다. (빈칸으로 저장도 가능)</p>
+            <input type="text" id="captureCompanyName" placeholder="업체명 (예: 우체국쇼핑)" class="w-full mb-3 p-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-200">
+            <input type="text" id="captureContact" placeholder="연락처 (예: 010-1234-5678)" class="w-full mb-5 p-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-200">
+            <div class="flex gap-2">
+                <button onclick="closeCaptureModal()" class="flex-[1] bg-gray-200 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-300">취소</button>
+                <button onclick="proceedCapture()" class="flex-[2] bg-gray-900 text-white font-bold py-3 rounded-xl hover:bg-gray-800">이대로 저장하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ⚙️ 우체국 설정 모달 -->
+    <div id="settingsModal" class="modal-overlay" style="padding:1rem;">
+        <div class="bg-white rounded-2xl shadow-xl w-full flex flex-col" style="max-width:420px;">
+            <div class="flex items-center justify-between px-5 pt-5 pb-3 shrink-0" style="border-bottom:1px solid #f3f4f6;">
+                <div>
+                    <p class="font-black text-gray-800">⚙️ 우체국 정보 설정</p>
+                    <p class="text-[11px] text-gray-400 mt-0.5">이미지 하단 문의처에 표시됩니다</p>
+                </div>
+                <button onclick="closeSettingsModal()" class="text-gray-400 ml-2 shrink-0">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div style="padding:1.25rem 1.25rem 0.75rem;">
+                <label class="block text-sm font-bold text-gray-700 mb-1.5">우체국명 (담당자)</label>
+                <input type="text" id="settingsPOName" placeholder="예: 대구우체국 (홍길동)" maxlength="30"
+                    class="w-full mb-3 p-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-200">
+                <label class="block text-sm font-bold text-gray-700 mb-1.5">연락처</label>
+                <input type="text" id="settingsContact" placeholder="예: 053-123-4567" maxlength="20"
+                    class="w-full mb-4 p-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-200">
+                <p class="text-[11px] text-gray-400 mb-4" style="line-height:1.5">설정한 정보는 이 기기에 저장되며, 미니소포 제안서와 공유됩니다.</p>
+            </div>
+            <div style="padding:0 1.25rem 1.25rem;display:flex;gap:0.5rem;">
+                <button onclick="closeSettingsModal()" class="flex-1 bg-gray-200 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-300">취소</button>
+                <button onclick="saveSettings()" style="flex:2;background:#111827;color:white;font-weight:900;padding:0.75rem;border-radius:0.75rem;">저장하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 캡처 중 안내용 오버레이 (숨김 상태) -->
+    <div id="loadingOverlay" class="modal-overlay" style="background:rgba(0,0,0,0.8)">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white mb-3"></div>
+        <p class="text-white font-bold text-lg">이미지 저장 중...</p>
+    </div>
+
+    <script>
+        // ── localStorage 키 ──────────────────────────
+        const LS_PO_NAME = 'postal_po_name';
+        const LS_CONTACT = 'postal_contact';
+
+        // 설정 모달
+        function openSettingsModal() {
+            const modal = document.getElementById('settingsModal');
+            document.getElementById('settingsPOName').value = localStorage.getItem(LS_PO_NAME) || '';
+            document.getElementById('settingsContact').value = localStorage.getItem(LS_CONTACT) || '';
+            modal.classList.add('is-open');
+        }
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').classList.remove('is-open');
+        }
+        function saveSettings() {
+            const name = document.getElementById('settingsPOName').value.trim();
+            const contact = document.getElementById('settingsContact').value.trim();
+            localStorage.setItem(LS_PO_NAME, name);
+            localStorage.setItem(LS_CONTACT, contact);
+            closeSettingsModal();
+        }
+
+        // 미니소포 페이지 이동 (같은 폴더의 미니소포 제안서)
+        function openMiniPage() {
+            window.location.href = '우체국_미니소포_제안서_최종.html';
+        }
+
+        // 모달 열기/닫기 제어
+        function openBaseRateModal() {
+            const modal = document.getElementById('baseRateModal');
+            modal.classList.add('is-open');
+        }
+        function closeBaseRateModal() {
+            const modal = document.getElementById('baseRateModal');
+            modal.classList.remove('is-open');
+        }
+
+        function openMiniRateModal() {
+            document.getElementById('miniRateModal').classList.add('is-open');
+        }
+        function closeMiniRateModal() {
+            document.getElementById('miniRateModal').classList.remove('is-open');
+        }
+
+        function openRulesModal() {
+            document.getElementById('rulesModal').classList.add('is-open');
+        }
+        function closeRulesModal() {
+            document.getElementById('rulesModal').classList.remove('is-open');
+        }
+
+        function openCaptureModal() {
+            document.getElementById('captureModal').classList.add('is-open');
+        }
+        function closeCaptureModal() {
+            document.getElementById('captureModal').classList.remove('is-open');
+        }
+
+        // 상호 배타적 토글 함수
+        function toggleExclusiveGroup(idToCheck, idsToUncheck) {
+            if (document.getElementById(idToCheck).checked) {
+                idsToUncheck.forEach(id => {
+                    document.getElementById(id).checked = false;
+                });
+            }
+            calculateRate();
+        }
+
+        // 우체국 계약소포 기본 요금 데이터
+        const baseRates = {
+            "100": [3050, 3300, 3800, 7300, 10300],
+            "300": [2950, 3200, 3700, 7200, 10200],
+            "500": [2850, 3100, 3600, 7100, 10100],
+            "1000": [2750, 3000, 3500, 7000, 10000],
+            "3000": [2650, 2900, 3400, 6900, 9900],
+            "5000": [2600, 2850, 3350, 6850, 9850],
+            "10000": [2550, 2800, 3300, 6800, 9800],
+            "20000": [2500, 2750, 3250, 6750, 9750],
+            "30000": [2450, 2700, 3200, 6700, 9700],
+            "50000": [2400, 2650, 3150, 6650, 9650]
+        };
+
+        const weightLabelsShort = ["초소형", "2kg 이하", "5kg 이하", "10kg 이하", "20kg 이하", "30kg 이하"];
+        const rateIndexMap = [0, 0, 1, 2, 3, 4];
+
+        function calculateRate() {
+            const volStr = document.getElementById('volumeSelect').value;
+            const volNum = parseInt(volStr);
+            const isUnder300 = volNum < 300;
+            const isUnder1000 = volNum < 1000;
+
+            // ── 계약기간 판별 ──────────────────────────────
+            const period = document.querySelector('input[name="contractPeriod"]:checked').value;
+            // 기간 버튼 하이라이트
+            const periodStyles = {
+                new:   { id: 'periodLabelNew',   cls: 'border-red-400 bg-red-50 text-red-700' },
+                long1: { id: 'periodLabelLong1', cls: 'border-blue-400 bg-blue-50 text-blue-700' },
+                long3: { id: 'periodLabelLong3', cls: 'border-blue-600 bg-blue-100 text-blue-800' },
+            };
+            ['new','long1','long3'].forEach(p => {
+                const el = document.getElementById(periodStyles[p].id);
+                if (!el) return;
+                if (p === period) {
+                    el.className = el.className.replace(/border-\S+|bg-\S+|text-(?:red|blue|gray)-\S+/g, '');
+                    el.classList.add(...periodStyles[p].cls.split(' '));
+                } else {
+                    el.className = el.className.replace(/border-\S+|bg-\S+|text-(?:red|blue|gray)-\S+/g, '');
+                    el.classList.add('border-gray-200','bg-white','text-gray-500');
+                }
+            });
+
+            // ── 한도액 결정 ──────────────────────────────
+            const maxCapMap = { new: 500, long1: 550, long3: 600 };
+            const maxCap = maxCapMap[period];
+            const capPeriodTextMap = { new: '(신규)', long1: '(장기 1년↑)', long3: '(장기 3년↑)' };
+            document.getElementById('capDisplayMax').innerText = maxCap;
+            document.getElementById('capPeriodLabel').innerText = capPeriodTextMap[period];
+
+            // ── 신규/장기 감액 테이블 (규정) ─────────────
+            // 신규(1년 미만): 1000→50, 10000→100, 20000→150, 30000→200
+            // 장기(1년 이상): 1000→100, 10000→150, 20000→200, 30000→250
+            // 장기(3년 이상): 1000→150, 10000→200, 20000→250, 30000→300
+            function getDiscByVol(tiers) {
+                if (volNum >= 30000) return tiers[3];
+                if (volNum >= 20000) return tiers[2];
+                if (volNum >= 10000) return tiers[1];
+                if (volNum >= 1000)  return tiers[0];
+                return 0;
+            }
+            const newDiscValue   = getDiscByVol([50,  100, 150, 200]);
+            const long1DiscValue = getDiscByVol([100, 150, 200, 250]);
+            const long3DiscValue = getDiscByVol([150, 200, 250, 300]);
+
+            const volLabel = volNum >= 30000 ? '3만통↑' : volNum >= 20000 ? '2만통↑' : volNum >= 10000 ? '1만통↑' : '1천통↑';
+
+            // 신규/장기 UI 표시 제어
+            const newDiscContainer  = document.getElementById('newDiscContainer');
+            const long1DiscContainer = document.getElementById('long1DiscContainer');
+            const long3DiscContainer = document.getElementById('long3DiscContainer');
+            const newDiscEmpty = document.getElementById('newDiscEmpty');
+
+            // 모두 숨기고 선택된 기간만 표시
+            newDiscContainer.classList.add('hidden');
+            long1DiscContainer.classList.add('hidden');
+            long3DiscContainer.classList.add('hidden');
+
+            if (isUnder1000) {
+                newDiscEmpty.classList.remove('hidden');
+                document.getElementById('chkNew').checked = false;
+                document.getElementById('chkLong1').checked = false;
+                document.getElementById('chkLong3').checked = false;
+            } else {
+                newDiscEmpty.classList.add('hidden');
+                if (period === 'new') {
+                    newDiscContainer.classList.remove('hidden');
+                    document.getElementById('lblNewAmt').innerText = `-${newDiscValue}원`;
+                    document.getElementById('lblNewDesc').innerText = `물량구간 ${volLabel} 적용`;
+                } else if (period === 'long1') {
+                    long1DiscContainer.classList.remove('hidden');
+                    document.getElementById('lblLong1Amt').innerText = `-${long1DiscValue}원`;
+                    document.getElementById('lblLong1Desc').innerText = `물량구간 ${volLabel} 적용`;
+                    document.getElementById('chkNew').checked = false;
+                    document.getElementById('chkLong3').checked = false;
+                } else if (period === 'long3') {
+                    long3DiscContainer.classList.remove('hidden');
+                    document.getElementById('lblLong3Amt').innerText = `-${long3DiscValue}원`;
+                    document.getElementById('lblLong3Desc').innerText = `물량구간 ${volLabel} 적용`;
+                    document.getElementById('chkNew').checked = false;
+                    document.getElementById('chkLong1').checked = false;
+                }
+            }
+
+            const lblSpecialTitle = document.getElementById('lblSpecialTitle');
+            if (volNum < 10000) {
+                lblSpecialTitle.innerText = "총괄국장 감액 (1만통 미만)";
+            } else {
+                lblSpecialTitle.innerText = "지방우정청장 감액 (1만통 이상)";
+            }
+
+            let sosangDiscValue = 0;
+            if (volNum >= 20000) sosangDiscValue = 100;
+            else if (volNum >= 10000) sosangDiscValue = 150;
+            else sosangDiscValue = 200;
+            document.getElementById('lblSosangAmt').innerText = `-${sosangDiscValue}원`;
+
+            const advWrapper = document.getElementById('advDiscountWrapper');
+            if (isUnder300) {
+                advWrapper.style.opacity = '0.4';
+                advWrapper.style.pointerEvents = 'none';
+                document.getElementById('chkDrop200').checked = false;
+                document.getElementById('chkDrop400').checked = false;
+                document.getElementById('chkSpecial').checked = false;
+            } else {
+                advWrapper.style.opacity = '1';
+                advWrapper.style.pointerEvents = 'auto';
+            }
+
+            // ── 체크 상태 읽기 ────────────────────────────
+            const chkSys    = document.getElementById('chkSys').checked;
+            const chkBar    = document.getElementById('chkBar').checked;
+            const chkDrop200 = document.getElementById('chkDrop200').checked;
+            const chkDrop400 = document.getElementById('chkDrop400').checked;
+            const chkSpecial = document.getElementById('chkSpecial').checked;
+            const chkNew    = document.getElementById('chkNew').checked;
+            const chkLong1  = document.getElementById('chkLong1').checked;
+            const chkLong3  = document.getElementById('chkLong3').checked;
+
+            // 초소형 감액: 1000통 미만 비활성화
+            const ultraWrapper = document.getElementById('ultraDiscWrapper');
+            const lblUltraDesc = document.getElementById('lblUltraDesc');
+            if (isUnder1000) {
+                ultraWrapper.style.opacity = '0.4';
+                ultraWrapper.style.pointerEvents = 'none';
+                document.getElementById('chkUltra100').checked = false;
+                lblUltraDesc.innerText = '1,000통 이상부터 적용 가능';
+            } else {
+                ultraWrapper.style.opacity = '1';
+                ultraWrapper.style.pointerEvents = 'auto';
+                lblUltraDesc.innerText = "오직 '초소형' 구간 요금에만 적용";
+            }
+
+            const chkUltra100 = document.getElementById('chkUltra100').checked;
+            const chkSosang   = document.getElementById('chkSosang').checked;
+            const bonbuDisc   = Math.max(0, parseInt(document.getElementById('inputBonbu').value) || 0);
+
+            let valDropoff = 0;
+            if (chkDrop200 && !isUnder300) valDropoff = 200;
+            if (chkDrop400 && !isUnder300) valDropoff = 400;
+
+            let valSpecial = 0;
+            if (chkSpecial && !isUnder300) valSpecial = 200;
+
+            // 신규/장기 중 해당 기간 감액만 반영
+            let appliedPeriodDisc = 0;
+            if (!isUnder1000 && !isUnder300) {
+                if (period === 'new'   && chkNew)   appliedPeriodDisc = newDiscValue;
+                if (period === 'long1' && chkLong1) appliedPeriodDisc = long1DiscValue;
+                if (period === 'long3' && chkLong3) appliedPeriodDisc = long3DiscValue;
+            }
+
+            let uncappedABDiscount = 0;
+            if (chkSys) uncappedABDiscount += 100;
+            if (chkBar) uncappedABDiscount += 50;
+            if (!isUnder300) {
+                uncappedABDiscount += valDropoff;
+                uncappedABDiscount += valSpecial;
+                uncappedABDiscount += appliedPeriodDisc;
+            }
+
+            let cappedABDiscount = uncappedABDiscount;
+            const capStatusLabel = document.getElementById('capStatusLabel');
+            if (cappedABDiscount > maxCap) {
+                cappedABDiscount = maxCap;
+                capStatusLabel.innerText = "(한도초과 컷팅됨)";
+            } else {
+                capStatusLabel.innerText = "";
+            }
+            document.getElementById('capDisplayActual').innerText = cappedABDiscount;
+
+            const currentRates = baseRates[volStr];
+            let htmlContent = "";
+
+            for(let i=0; i<6; i++) {
+                let uncappedCGroup = 0;
+                const basePrice = currentRates[rateIndexMap[i]];
+
+                // 20kg(i===4), 30kg(i===5) 구간은 감액 불가
+                const isHeavy = (i === 4 || i === 5);
+
+                if (!isHeavy && chkSosang && (i === 0 || i === 1 || i === 2)) {
+                    uncappedCGroup += sosangDiscValue;
+                }
+                
+                if (!isHeavy && chkUltra100 && i === 0) {
+                    uncappedCGroup += 100;
+                }
+
+                if (!isHeavy) {
+                    uncappedCGroup += bonbuDisc;
+                }
+
+                const totalDiscount = isHeavy ? 0 : (cappedABDiscount + uncappedCGroup);
+                const finalRate = basePrice - totalDiscount;
+
+                const isUltra = (i === 0);
+                const isMini = (i === 0 || i === 1 || i === 2);
+                
+                let rowClass = "border-b border-gray-100";
+                if (isUltra) rowClass += " bg-blue-50";
+                else if (isMini) rowClass += " bg-red-50";
+                else rowClass += " bg-white";
+                
+                const textClass = isUltra ? "text-blue-700" : (isMini ? "text-red-600" : "text-gray-800");
+                const boldClass = isUltra ? "font-black" : "font-bold";
+
+                htmlContent += `
+                    <tr class="${rowClass}">
+                        <td class="py-2.5 px-1 font-black ${textClass} text-[13px] tracking-tighter">${weightLabelsShort[i]}</td>
+                        <td class="py-2.5 px-1 text-gray-400 text-[12px] line-through">${basePrice.toLocaleString()}</td>
+                        <td class="py-2.5 px-1 text-red-500 text-[12px] font-bold">-${totalDiscount.toLocaleString()}</td>
+                        <td class="py-2.5 px-1 ${textClass} text-[15px] ${boldClass} tracking-tight">${finalRate.toLocaleString()}원</td>
+                    </tr>
+                `;
+            }
+
+            document.getElementById('resultTableBody').innerHTML = htmlContent;
+        }
+
+        // 이미지 저장 진행 함수
+        function proceedCapture() {
+            const compName = document.getElementById('captureCompanyName').value.trim();
+            const contact = document.getElementById('captureContact').value.trim();
+
+            const headerDiv = document.getElementById('captureHeader');
+            const infoTitle = document.getElementById('captureCompanyInfo');
+
+            // 업체정보 헤더
+            if(compName || contact) {
+                let infoText = compName;
+                if(contact) infoText += (infoText ? ` (${contact})` : contact);
+                infoTitle.innerText = infoText;
+                headerDiv.classList.remove('hidden');
+            } else {
+                headerDiv.classList.add('hidden');
+            }
+
+            // 우체국 문의처 footer
+            const poName = localStorage.getItem(LS_PO_NAME) || '';
+            const poContact = localStorage.getItem(LS_CONTACT) || '';
+            const footerEl = document.getElementById('captureFooter');
+            const footerText = document.getElementById('captureFooterText');
+            if(poName || poContact) {
+                let ft = poName;
+                if(poContact) ft += (ft ? '  ' + poContact : poContact);
+                footerText.textContent = ft;
+                footerEl.classList.remove('hidden');
+            } else {
+                footerEl.classList.add('hidden');
+            }
+
+            closeCaptureModal();
+            captureAndDownload();
+        }
+
+        // 실제 캡처 로직
+        function captureAndDownload() {
+            if (typeof html2canvas === 'undefined' || window._h2cFailed) {
+                alert('이미지 저장은 Safari, Chrome 등 기본 브라우저에서 열어주세요.\n카카오톡·문자 등 앱 내 브라우저에서는 지원되지 않습니다.');
+                return;
+            }
+            const captureArea = document.getElementById('captureArea');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            
+            loadingOverlay.classList.add('is-open');
+            window.scrollTo(0, 0);
+
+            setTimeout(() => {
+                html2canvas(captureArea, {
+                    scale: 2, 
+                    useCORS: true,
+                    backgroundColor: "#f3f4f6"
+                }).then(canvas => {
+                    // iOS Safari는 a.click() 다운로드 미지원 → window.open으로 새 탭에서 열기
+                    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                    if (isIOS) {
+                        window.open(imgData, '_blank');
+                    } else {
+                        const link = document.createElement('a');
+                        const compName2 = document.getElementById('captureCompanyName').value.trim();
+                        let fileName = '우체국_맞춤요금표.png';
+                        if (compName2) fileName = `${compName2}_우체국_맞춤요금표.png`;
+                        link.download = fileName;
+                        link.href = imgData;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }
+                    
+                    // 저장 완료 후 상태 복구
+                    loadingOverlay.classList.remove('is-open');
+                    document.getElementById('captureHeader').classList.add('hidden');
+                    document.getElementById('captureFooter').classList.add('hidden');
+                }).catch(err => {
+                    console.error("캡처 오류:", err);
+                    alert("이미지 저장 중 오류가 발생했습니다.");
+                    loadingOverlay.classList.remove('is-open');
+                    document.getElementById('captureHeader').classList.add('hidden');
+                });
+            }, 300);
+        }
+
+        window.onload = calculateRate;
+    </script>
+</body>
+</html>
