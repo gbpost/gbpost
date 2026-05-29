@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>경북지방우정청 현장 마케팅</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f3f4f6; /* Tailwind gray-100 */
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* 우체국 고유 컬러 그라데이션 */
+        .bg-po-gradient {
+            background: linear-gradient(135deg, #e02b20 0%, #b91c1c 100%);
+        }
+        /* 카드 호버/터치 애니메이션 */
+        .category-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .category-card:active {
+            transform: scale(0.97);
+        }
+        @media (hover: hover) {
+            .category-card:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            }
+        }
+    </style>
+</head>
+<body class="text-gray-800 pb-12 flex flex-col min-h-screen">
+
+    <header class="bg-po-gradient text-white p-6 shadow-md rounded-b-3xl relative z-10">
+        <div class="max-w-screen-md mx-auto">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-inner">
+                    <span class="text-xl">📮</span>
+                </div>
+                <div>
+                    <h2 class="text-sm font-bold text-red-100 tracking-tight">경북지방우정청 우편영업과</h2>
+                    <h1 class="text-2xl font-black tracking-tight leading-tight">현장 마케팅 툴킷</h1>
+                </div>
+            </div>
+            <p class="text-xs font-medium text-red-100 mt-2 opacity-90">고객 맞춤형 제안을 위한 카테고리를 선택하세요.</p>
+        </div>
+    </header>
+
+    <main class="flex-1 px-4 mt-8 max-w-screen-md mx-auto w-full">
+        
+        <div class="grid grid-cols-2 gap-4">
+            
+            <a href="parcel.html" class="category-card bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center group cursor-pointer block">
+                <div class="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mb-3 group-hover:bg-red-100 transition-colors">
+                    <span class="text-3xl">📦</span>
+                </div>
+                <h3 class="text-lg font-black text-gray-900 mb-1">계약소포</h3>
+                <p class="text-[11px] text-gray-500 font-medium leading-tight">맞춤 요금표 및<br>미니소포 제안</p>
+            </a>
+
+            <a href="mail.html" class="category-card bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center group cursor-pointer block">
+                <div class="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mb-3 group-hover:bg-blue-100 transition-colors">
+                    <span class="text-3xl">✉️</span>
+                </div>
+                <h3 class="text-lg font-black text-gray-900 mb-1">통상우편</h3>
+                <p class="text-[11px] text-gray-500 font-medium leading-tight">다량우편 할인 및<br>우편물 부가서비스</p>
+            </a>
+
+            <a href="ems.html" class="category-card bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center group cursor-pointer block">
+                <div class="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mb-3 group-hover:bg-emerald-100 transition-colors">
+                    <span class="text-3xl">✈️</span>
+                </div>
+                <h3 class="text-lg font-black text-gray-900 mb-1">국제특급</h3>
+                <p class="text-[11px] text-gray-500 font-medium leading-tight">EMS 요금 조회 및<br>국가별 배송 조건</p>
+            </a>
+
+            <a href="shopping.html" class="category-card bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center group cursor-pointer block">
+                <div class="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center mb-3 group-hover:bg-amber-100 transition-colors">
+                    <span class="text-3xl">🛒</span>
+                </div>
+                <h3 class="text-lg font-black text-gray-900 mb-1">우체국쇼핑</h3>
+                <p class="text-[11px] text-gray-500 font-medium leading-tight">특산품 안내 및<br>B2B 명절 선물 제안</p>
+            </a>
+
+        </div>
+
+        <div class="mt-8 bg-gray-800 rounded-2xl p-4 flex items-start gap-3 shadow-md">
+            <span class="text-xl">📢</span>
+            <div>
+                <h4 class="text-sm font-bold text-white mb-1">마케팅 주요 공지</h4>
+                <p class="text-xs text-gray-300 leading-relaxed tracking-tight">
+                    26.4.15. 기준으로 계약소포 요금표가 업데이트되었습니다.<br>현장에서 최신 단가표를 활용해 주시기 바랍니다.
+                </p>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="mt-auto text-center pt-8 pb-4">
+        <p class="text-[10px] text-gray-400 font-medium">ⓒ 경북지방우정청 우편영업과. All rights reserved.</p>
+    </footer>
+
+</body>
+</html>
