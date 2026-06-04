@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>우체국 국내등기 종적조회</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.3.0/dist/tabler-icons.min.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; background: #f5f5f3; color: #1a1a18; }
+
+  .wrap { max-width: 680px; margin: 0 auto; padding: 2.5rem 1rem 4rem; }
+
+  .header { display: flex; align-items: center; gap: 14px; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid #e4e2d8; }
+  .logo { width: 44px; height: 44px; background: #E8131B; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .logo i { color: #fff; font-size: 24px; }
+  .header-text h1 { font-size: 20px; font-weight: 600; }
+  .header-text p { font-size: 13px; color: #888780; margin-top: 3px; }
+
+  .search-card { background: #fff; border: 1px solid #e4e2d8; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; }
+  .search-row { display: flex; gap: 8px; }
+  .search-row input {
+    flex: 1; height: 44px; border: 1px solid #d3d1c7; border-radius: 8px;
+    padding: 0 14px; font-size: 15px; font-family: inherit;
+    background: #f5f5f3; letter-spacing: 1px; transition: border-color 0.15s;
+  }
+  .search-row input:focus { outline: none; border-color: #E8131B; box-shadow: 0 0 0 3px rgba(232,19,27,0.1); background: #fff; }
+  .search-row input::placeholder { color: #b4b2a9; letter-spacing: 0; }
+  .btn-search {
+    height: 44px; padding: 0 22px; background: #E8131B; color: #fff; border: none;
+    border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;
+    display: flex; align-items: center; gap: 6px; flex-shrink: 0; transition: background 0.15s;
+  }
+  .btn-search:hover { background: #c4111a; }
+  .btn-search:active { background: #a50e16; }
+  .btn-search:disabled { background: #d3d1c7; color: #888780; cursor: not-allowed; }
+  .hint { font-size: 12px; color: #b4b2a9; margin-top: 8px; }
+  .msg-error {
+    background: #FCEBEB; color: #A32D2D; border-radius: 8px;
+    padding: 10px 14px; font-size: 13px; margin-top: 10px;
+    display: flex; align-items: flex-start; gap: 8px;
+  }
+  .msg-error i { margin-top: 1px; flex-shrink: 0; font-size: 16px; }
+
+  .result-card { background: #fff; border: 1px solid #e4e2d8; border-radius: 12px; overflow: hidden; margin-bottom: 1.5rem; }
+  .result-header { padding: 1.25rem; border-bottom: 1px solid #e4e2d8; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .info-item label { font-size: 11px; color: #b4b2a9; text-transform: uppercase; letter-spacing: 0.6px; display: block; margin-bottom: 4px; }
+  .info-item span { font-size: 14px; color: #1a1a18; font-weight: 500; }
+
+  .badge { display: inline-block; font-size: 12px; padding: 3px 10px; border-radius: 999px; font-weight: 500; }
+  .badge-delivered { background: #EAF3DE; color: #3B6D11; }
+  .badge-progress  { background: #E6F1FB; color: #185FA5; }
+  .badge-default   { background: #f1efe8; color: #5f5e5a; }
+
+  .timeline { padding: 0 1.25rem; }
+  .tl-item { display: flex; gap: 16px; padding: 14px 0; border-bottom: 1px solid #f1efe8; }
+  .tl-item:last-child { border-bottom: none; }
+  .tl-dot-wrap { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; width: 18px; margin-top: 4px; }
+  .tl-dot { width: 11px; height: 11px; border-radius: 50%; background: #d3d1c7; border: 2px solid #d3d1c7; flex-shrink: 0; }
+  .tl-dot.first { background: #E8131B; border-color: #E8131B; }
+  .tl-dot.done  { background: #639922; border-color: #639922; }
+  .tl-line { width: 1px; flex: 1; background: #e4e2d8; margin-top: 4px; min-height: 16px; }
+  .tl-content { flex: 1; min-width: 0; }
+  .tl-status { font-size: 14px; font-weight: 600; color: #1a1a18; }
+  .tl-detail { font-size: 13px; color: #5f5e5a; margin-top: 3px; }
+  .tl-meta   { font-size: 12px; color: #b4b2a9; margin-top: 4px; }
+
+  .msg-box { padding: 3rem; text-align: center; color: #888780; font-size: 14px; }
+  .msg-box i { font-size: 36px; display: block; margin-bottom: 12px; color: #d3d1c7; }
+
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <div class="logo"><i class="ti ti-mail-forward"></i></div>
+    <div class="header-text">
+      <h1>우체국 국내등기 종적조회</h1>
+      <p>우정사업본부 Open API · 등기번호 13자리 입력</p>
+    </div>
+  </div>
+
+  <div class="search-card">
+    <div class="search-row">
+      <input type="text" id="regNoInput" placeholder="등기번호 13자리 입력 (예: 1234567890123)" maxlength="13" />
+      <button class="btn-search" id="searchBtn" onclick="doSearch()">
+        <i class="ti ti-search"></i> 조회
+      </button>
+    </div>
+    <p class="hint">* 국내 일반등기, 소포등기, 준등기 등 13자리 등기번호를 입력하세요.</p>
+    <div id="errorMsg"></div>
+  </div>
+
+  <div id="resultArea"></div>
+
+</div>
+
+<script>
+  // 같은 도메인의 /api/trace 를 호출 (Vercel 서버리스 함수)
+  // 로컬 테스트 시: vercel dev 실행 후 http://localhost:3000 접속
+  const API_ENDPOINT = '/api/trace';
+
+  function fmtDate(d, t) {
+    if (!d) return '-';
+    const ds = d.replace(/(\d{4})(\d{2})(\d{2})/, '$1.$2.$3');
+    if (!t) return ds;
+    const ts = t.replace(/(\d{2})(\d{2})(\d{2})?/, '$1:$2');
+    return `${ds} ${ts}`;
+  }
+
+  function getBadge(status) {
+    if (!status) return '-';
+    if (status.includes('완료')) return `<span class="badge badge-delivered">${status}</span>`;
+    if (status.includes('중') || status.includes('접수')) return `<span class="badge badge-progress">${status}</span>`;
+    return `<span class="badge badge-default">${status}</span>`;
+  }
+
+  function showError(msg) {
+    document.getElementById('errorMsg').innerHTML =
+      `<div class="msg-error"><i class="ti ti-alert-circle"></i><span>${msg}</span></div>`;
+  }
+  function clearError() { document.getElementById('errorMsg').innerHTML = ''; }
+
+  function renderResult(xmlText) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xmlText, 'text/xml');
+
+    const root = doc.querySelector(
+      'GetLongitudinalDomesticListResponse, LongitudinalDomesticListResponse, response'
+    );
+    if (!root) {
+      showError('응답 파싱 실패 — 콘솔에서 원본 XML을 확인하세요.');
+      console.log('[응답 원문]', xmlText);
+      return;
+    }
+
+    const get = (tag) => { const el = root.querySelector(tag); return el ? el.textContent.trim() : ''; };
+
+    const headerHtml = `
+      <div class="result-header">
+        <div class="info-item"><label>등기번호</label><span>${get('Regno') || '-'}</span></div>
+        <div class="info-item"><label>배달 상태</label><span>${getBadge(get('Dlysts'))}</span></div>
+        <div class="info-item"><label>발송인</label><span>${get('Sndnm') || '-'}</span></div>
+        <div class="info-item"><label>수취인</label><span>${get('Rcvnm') || '-'}</span></div>
+        <div class="info-item"><label>우편물 종류</label><span>${get('Postgbn') || '-'}</span></div>
+        <div class="info-item"><label>배달 일자</label><span>${get('Dlydt') ? fmtDate(get('Dlydt')) : '-'}</span></div>
+      </div>`;
+
+    const items = Array.from(root.querySelectorAll('LongitudinalDomesticList'));
+    let tlHtml = '<div class="timeline">';
+    items.forEach((item, i) => {
+      const chgdt  = item.querySelector('Chgdt')?.textContent.trim() || '';
+      const chgtm  = item.querySelector('Chgtm')?.textContent.trim() || '';
+      const nowloc = item.querySelector('Nowloc')?.textContent.trim() || '';
+      const chosts = item.querySelector('Chosts')?.textContent.trim() || '';
+      const remark = item.querySelector('Remark')?.textContent.trim() || '';
+      const isFirst = i === 0;
+      const isDone  = chosts.includes('완료');
+      const hasNext = i < items.length - 1;
+      tlHtml += `
+        <div class="tl-item">
+          <div class="tl-dot-wrap">
+            <div class="tl-dot ${isFirst ? 'first' : isDone ? 'done' : ''}"></div>
+            ${hasNext ? '<div class="tl-line"></div>' : ''}
+          </div>
+          <div class="tl-content">
+            <div class="tl-status">${chosts || '-'}</div>
+            <div class="tl-detail">${nowloc}${remark ? ' · ' + remark : ''}</div>
+            <div class="tl-meta">${fmtDate(chgdt, chgtm)}</div>
+          </div>
+        </div>`;
+    });
+    tlHtml += '</div>';
+
+    document.getElementById('resultArea').innerHTML =
+      `<div class="result-card">${headerHtml}${tlHtml}</div>`;
+  }
+
+  async function doSearch() {
+    clearError();
+    document.getElementById('resultArea').innerHTML = '';
+
+    const regNo = document.getElementById('regNoInput').value.trim();
+    if (!regNo) { showError('등기번호를 입력하세요.'); return; }
+    if (!/^\d{13}$/.test(regNo)) { showError('등기번호는 숫자 13자리여야 합니다.'); return; }
+
+    const btn = document.getElementById('searchBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> 조회중';
+
+    try {
+      const res = await fetch(`${API_ENDPOINT}?regNo=${regNo}`);
+      const text = await res.text();
+      console.log('[응답 원문]', text);
+
+      if (!res.ok) {
+        const err = JSON.parse(text);
+        showError(err.error || `오류: HTTP ${res.status}`);
+        return;
+      }
+      if (text.includes('SERVICE_KEY_IS_NOT_REGISTERED_ERROR')) {
+        showError('인증키 오류 — Vercel 환경변수 SERVICE_KEY를 확인하세요.');
+      } else if (text.includes('LIMITED_NUMBER_OF_SERVICE_REQUESTS')) {
+        showError('일일 요청 한도를 초과했습니다.');
+      } else if (text.includes('NO_DATA') || text.includes('noData')) {
+        document.getElementById('resultArea').innerHTML = `
+          <div class="result-card">
+            <div class="msg-box"><i class="ti ti-package-off"></i>해당 등기번호의 종적 정보가 없습니다.</div>
+          </div>`;
+      } else {
+        renderResult(text);
+      }
+    } catch (e) {
+      showError(`요청 실패: ${e.message}`);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ti ti-search"></i> 조회';
+    }
+  }
+
+  document.getElementById('regNoInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') doSearch();
+  });
+</script>
+</body>
+</html>
