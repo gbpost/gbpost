@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>우체국 계약소포 맞춤 평균요금 계산기</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+
+  :root {
+    --red: #C8001A;
+    --red-light: #e8001f;
+    --navy: #0B1E3D;
+    --blue: #1A4BAA;
+    --blue-light: #2E6FD9;
+    --gray-bg: #F4F5F7;
+    --gray-line: #DEE2E8;
+    --text: #1A1A2E;
+    --text-sub: #5A6478;
+    --white: #FFFFFF;
+    --gold: #D4A017;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--navy);
+    min-height: 100vh;
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 16px 60px;
+    background-image:
+      radial-gradient(ellipse at 10% 20%, rgba(26,75,170,0.25) 0%, transparent 50%),
+      radial-gradient(ellipse at 90% 80%, rgba(200,0,26,0.15) 0%, transparent 50%);
+  }
+
+  .header { text-align: center; margin-bottom: 30px; animation: fadeDown 0.7s ease both; }
+  .badge {
+    display: inline-block; background: var(--red); color: white;
+    font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    padding: 4px 14px; border-radius: 20px; margin-bottom: 14px;
+  }
+  h1 { font-size: 26px; font-weight: 900; color: var(--white); letter-spacing: -0.5px; line-height: 1.2; }
+  h1 span { color: var(--gold); }
+  .subtitle { font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 8px; }
+
+  .card {
+    background: var(--white); border-radius: 20px; padding: 28px 24px;
+    width: 100%; max-width: 600px;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.4); animation: fadeUp 0.7s ease 0.1s both;
+  }
+
+  .section-title {
+    font-size: 14px; font-weight: 800; color: var(--navy);
+    margin-bottom: 14px; display: flex; justify-content: space-between; align-items: flex-end;
+    border-bottom: 2px solid var(--gray-line); padding-bottom: 8px; margin-top: 24px;
+  }
+  .section-title:first-child { margin-top: 0; }
+
+  /* 물량 단계 선택 */
+  .tier-select-wrap {
+    background: #EFF5FF; border: 2px solid var(--blue-light); border-radius: 12px;
+    padding: 12px; margin-bottom: 10px; position: relative;
+  }
+  .tier-select-wrap select {
+    width: 100%; appearance: none; background: transparent; border: none; outline: none;
+    font-size: 18px; font-weight: 900; color: var(--blue); text-align: center; cursor: pointer;
+    font-family: inherit;
+  }
+  .tier-select-wrap::after {
+    content: '▼'; position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+    color: var(--blue); font-size: 12px; pointer-events: none;
+  }
+
+  /* 규격별 물량 입력 그리드 (2x2) */
+  .size-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 10px;
+  }
+  .size-box {
+    background: var(--gray-bg); border: 1px solid var(--gray-line);
+    border-radius: 12px; padding: 14px; text-align: center;
+    transition: all 0.2s;
+  }
+  .size-box:focus-within { border-color: var(--blue-light); background: #EFF5FF; }
+  
+  .size-name { font-size: 14px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+  .size-base { font-size: 12px; color: var(--text-sub); margin-bottom: 10px; font-weight: 500;}
+  
+  .size-input-wrap {
+    display: flex; align-items: center; background: white;
+    border: 1px solid var(--gray-line); border-radius: 8px; padding: 6px 10px;
+  }
+  .size-input-wrap input {
+    width: 100%; border: none; outline: none; font-size: 16px; font-weight: 700;
+    text-align: right; color: var(--blue); font-family: inherit;
+  }
+  .size-input-wrap span { font-size: 12px; color: var(--text-sub); margin-left: 6px; }
+  
+  .size-ratio {
+    font-size: 12px; font-weight: 800; color: var(--red); margin-top: 10px;
+    background: rgba(200,0,26,0.05); border-radius: 6px; padding: 4px 0;
+  }
+
+  /* 감액 설정 섹션 */
+  .discount-section {
+    background: #F8F9FA; border-radius: 12px; padding: 16px;
+    border: 1px solid var(--gray-line);
+  }
+  .opt-group { margin-bottom: 14px; }
+  .opt-group:last-child { margin-bottom: 0; }
+  .opt-label { font-size: 12px; font-weight: 800; color: var(--text); margin-bottom: 8px; display: block; }
+  
+  .chk-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chk-label {
+    display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600;
+    background: white; border: 1px solid var(--gray-line); padding: 8px 12px;
+    border-radius: 8px; cursor: pointer; user-select: none; transition: 0.2s;
+  }
+  .chk-label input { display: none; }
+  .chk-label:has(input:checked) { border-color: var(--red); background: #FFF5F5; color: var(--red); }
+  .chk-label input:checked + .box { background: var(--red); border-color: var(--red); }
+  .chk-label .box {
+    width: 14px; height: 14px; border: 1.5px solid #ccc; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .chk-label .box::after { content: '✓'; color: white; font-size: 10px; opacity: 0; }
+  .chk-label input:checked + .box::after { opacity: 1; }
+
+  select.custom-sel {
+    padding: 8px 12px; border: 1px solid var(--gray-line); border-radius: 8px;
+    font-size: 12px; font-weight: 600; outline: none; background: white; font-family: inherit;
+  }
+
+  /* 결과 섹션 (비교형) */
+  .result-container { margin-top: 28px; }
+  
+  .result-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;
+  }
+  
+  .res-box {
+    border-radius: 16px; padding: 20px 16px; text-align: center;
+    background: var(--gray-bg); border: 2px solid var(--gray-line);
+  }
+  .res-box.highlight {
+    background: var(--navy); border-color: var(--navy); color: white;
+    position: relative; overflow: hidden;
+  }
+  .res-box.highlight::before {
+    content: ''; position: absolute; top: -20px; right: -20px;
+    width: 80px; height: 80px; background: radial-gradient(circle, rgba(200,0,26,0.3) 0%, transparent 70%); border-radius: 50%;
+  }
+
+  .res-label { font-size: 12px; font-weight: 700; color: var(--text-sub); margin-bottom: 6px; }
+  .res-box.highlight .res-label { color: rgba(255,255,255,0.7); }
+  
+  .res-amount { font-size: 26px; font-weight: 900; letter-spacing: -0.5px; color: var(--text); }
+  .res-box.highlight .res-amount { font-size: 30px; color: white; }
+  .res-amount span { font-size: 16px; font-weight: 500; margin-left: 2px; }
+  .res-box.highlight .res-amount span { color: rgba(255,255,255,0.7); }
+
+  .res-footer {
+    background: #FFF8EC; border: 1px solid #FFD580; border-radius: 12px;
+    padding: 14px 12px; text-align: center; font-size: 13px; font-weight: 700; color: var(--gold);
+    line-height: 1.5;
+  }
+  .res-footer span.highlight-red { color: var(--red); font-weight: 900; }
+  .res-footer .range-text { font-size: 11px; color: #888; font-weight: 600; display: block; margin-bottom: 4px; }
+
+  @keyframes fadeDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="badge">영업 마케팅용</div>
+  <h1>단가 비교 <span>계산기</span></h1>
+  <p class="subtitle">계약물량 및 세부 비중에 따른 요금 절감액 확인</p>
+</div>
+
+<div class="card">
+  
+  <div class="section-title">1. 월 발송 물량 단계 선택</div>
+  <div class="tier-select-wrap">
+    <select id="selVolumeTier" onchange="calculate()">
+      <option value="100">100통 이상</option>
+      <option value="300">300통 이상 (방문픽업)</option>
+      <option value="500">500통 이상</option>
+      <option value="1000" selected>1,000통 이상 (기본)</option>
+      <option value="3000">3,000통 이상</option>
+      <option value="5000">5,000통 이상</option>
+      <option value="10000">10,000통 이상</option>
+      <option value="20000">20,000통 이상</option>
+      <option value="30000">30,000통 이상</option>
+      <option value="50000">50,000통 이상</option>
+      <option value="100000">100,000통 이상</option>
+    </select>
+  </div>
+
+  <div class="section-title">2. 중량별 예상 물량 입력 (최대 10kg)</div>
+  <div class="size-grid">
+    <!-- 초소형 -->
+    <div class="size-box">
+      <div class="size-name">초소형</div>
+      <div class="size-base" id="base_0">-</div>
+      <div class="size-input-wrap">
+        <input type="number" id="qty_0" value="" placeholder="0" oninput="calculate()"><span>통</span>
+      </div>
+      <div class="size-ratio" id="ratio_0">0.0%</div>
+    </div>
+    <!-- 2kg -->
+    <div class="size-box">
+      <div class="size-name">2kg 이하</div>
+      <div class="size-base" id="base_1">-</div>
+      <div class="size-input-wrap">
+        <input type="number" id="qty_1" value="" placeholder="0" oninput="calculate()"><span>통</span>
+      </div>
+      <div class="size-ratio" id="ratio_1">0.0%</div>
+    </div>
+    <!-- 5kg -->
+    <div class="size-box">
+      <div class="size-name">5kg 이하</div>
+      <div class="size-base" id="base_2">-</div>
+      <div class="size-input-wrap">
+        <input type="number" id="qty_2" value="" placeholder="0" oninput="calculate()"><span>통</span>
+      </div>
+      <div class="size-ratio" id="ratio_2">0.0%</div>
+    </div>
+    <!-- 10kg -->
+    <div class="size-box">
+      <div class="size-name">10kg 이하</div>
+      <div class="size-base" id="base_3">-</div>
+      <div class="size-input-wrap">
+        <input type="number" id="qty_3" value="" placeholder="0" oninput="calculate()"><span>통</span>
+      </div>
+      <div class="size-ratio" id="ratio_3">0.0%</div>
+    </div>
+  </div>
+
+  <div class="section-title">3. 감액 조건 설정</div>
+  <div class="discount-section">
+    <div class="opt-group">
+      <span class="opt-label">A. 기본 적용 감액</span>
+      <div class="chk-row">
+        <label class="chk-label"><input type="checkbox" id="chkSys" checked onchange="calculate()"><div class="box"></div>계약전용시스템</label>
+        <label class="chk-label"><input type="checkbox" id="chkBar" checked onchange="calculate()"><div class="box"></div>집배코드/구분코스</label>
+        <select id="selDrop" class="custom-sel" onchange="calculate()">
+          <option value="0">직접운송 안함</option>
+          <option value="200">우체국 직접운송 (-200)</option>
+          <option value="400">집중국 직접운송 (-400)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="opt-group">
+      <span class="opt-label">B. 마케팅 추가 감액</span>
+      <div class="chk-row">
+        <select id="selPeriod" class="custom-sel" onchange="calculate()">
+          <option value="new">신규고객 감액 (1년 미만)</option>
+          <option value="long1">장기고객 감액 (1년 이상)</option>
+          <option value="long3">장기고객 감액 (3년 이상)</option>
+        </select>
+        <label class="chk-label"><input type="checkbox" id="chkPeriodDisc" checked onchange="calculate()"><div class="box"></div>신규/장기 감액 적용</label>
+        <label class="chk-label"><input type="checkbox" id="chkSpecial" onchange="calculate()"><div class="box"></div><span id="lblSpecial">총괄국장 감액 (1만통 미만)</span></label>
+      </div>
+    </div>
+
+    <div class="opt-group">
+      <span class="opt-label">C. 감액한도 제외 항목</span>
+      <div class="chk-row">
+        <label class="chk-label" style="border-color:#bfdbfe"><input type="checkbox" id="chkUltra" onchange="calculate()"><div class="box"></div>초소형 소포 감액</label>
+        <label class="chk-label" style="border-color:#bfdbfe"><input type="checkbox" id="chkSosang" onchange="calculate()"><div class="box"></div>소상공인 감액</label>
+      </div>
+    </div>
+  </div>
+
+  <div class="result-container">
+    <div class="result-grid">
+      <div class="res-box">
+        <div class="res-label">평균 기준요금</div>
+        <div class="res-amount" id="resBaseAvg">0<span>원</span></div>
+      </div>
+      <div class="res-box highlight">
+        <div class="res-label">평균 할인요금</div>
+        <div class="res-amount" id="resDiscAvg">0<span>원</span></div>
+      </div>
+    </div>
+    <div class="res-footer" id="resSummary">
+      예상 물량을 입력해주세요
+    </div>
+  </div>
+
+</div>
+
+<script>
+// 기본 요금표 데이터 (초소형, 2kg, 5kg, 10kg 한정)
+const baseRates = {
+  100: [3050, 3050, 3300, 3800],
+  300: [2950, 2950, 3200, 3700],
+  500: [2850, 2850, 3100, 3600],
+  1000: [2750, 2750, 3000, 3500],
+  3000: [2650, 2650, 2900, 3400],
+  5000: [2600, 2600, 2850, 3350],
+  10000: [2550, 2550, 2800, 3300],
+  20000: [2500, 2500, 2750, 3250],
+  30000: [2450, 2450, 2700, 3200],
+  50000: [2400, 2400, 2650, 3150],
+  100000: [2350, 2350, 2600, 3100]
+};
+
+const tierNames = ['초소형', '2kg', '5kg', '10kg'];
+
+function getPeriodDiscount(volTier, period) {
+  if (volTier < 1000) return 0;
+  let t = 0;
+  if (volTier >= 30000) t = 3;
+  else if (volTier >= 20000) t = 2;
+  else if (volTier >= 10000) t = 1;
+
+  if (period === 'new')   return [50, 100, 150, 200][t];
+  if (period === 'long1') return [100, 150, 200, 250][t];
+  if (period === 'long3') return [150, 200, 250, 300][t];
+  return 0;
+}
+
+function calculate() {
+  // 1. 선택된 물량 단계 가져오기
+  const currentTier = parseInt(document.getElementById('selVolumeTier').value);
+  const rates = baseRates[currentTier];
+
+  // 총괄/청장 라벨 동적 업데이트
+  if (currentTier < 10000) {
+      document.getElementById('lblSpecial').innerText = "총괄국장 감액 (1만통 미만)";
+  } else {
+      document.getElementById('lblSpecial').innerText = "지방우정청장 감액 (1만통 이상)";
+  }
+
+  // 각 규격별 기준요금 UI 갱신
+  for(let i=0; i<4; i++) {
+    document.getElementById(`base_${i}`).innerText = `기준 ${rates[i].toLocaleString()}원`;
+  }
+
+  // 2. 수량 취합 및 비중 계산 (0~3 인덱스만 사용)
+  let qtys = [];
+  let totalInputQty = 0;
+  let activeIndices = [];
+  
+  for (let i = 0; i < 4; i++) {
+    let val = parseInt(document.getElementById(`qty_${i}`).value) || 0;
+    qtys.push(val);
+    totalInputQty += val;
+    if (val > 0) activeIndices.push(i);
+  }
+
+  // 비중 업데이트
+  for (let i = 0; i < 4; i++) {
+    let ratio = totalInputQty > 0 ? (qtys[i] / totalInputQty * 100).toFixed(1) : "0.0";
+    document.getElementById(`ratio_${i}`).innerText = `${ratio}%`;
+  }
+
+  if (totalInputQty === 0) {
+    document.getElementById('resBaseAvg').innerHTML = `0<span>원</span>`;
+    document.getElementById('resDiscAvg').innerHTML = `0<span>원</span>`;
+    document.getElementById('resSummary').innerHTML = `예상 물량을 입력해주세요.`;
+    return;
+  }
+
+  // 3. 물량 미달 에러 검증
+  if (totalInputQty > 0 && totalInputQty < currentTier) {
+    document.getElementById('resBaseAvg').innerHTML = `0<span>원</span>`;
+    document.getElementById('resDiscAvg').innerHTML = `0<span>원</span>`;
+    document.getElementById('resSummary').innerHTML = 
+      `<span style="color:var(--red); font-size:14px;">⚠️ 물량 조건 미달</span><br>` +
+      `<span style="color:#5A6478; font-weight:500;">입력된 합산 물량(${totalInputQty.toLocaleString()}통)이 선택한 1단계 물량 조건(${currentTier.toLocaleString()}통)에 미달합니다.<br>추가 물량을 입력해주세요.</span>`;
+    return;
+  }
+
+  // 요금 적용 구간 텍스트 생성
+  let rangeStr = "";
+  if (activeIndices.length > 0) {
+    let minIdx = activeIndices[0];
+    let maxIdx = activeIndices[activeIndices.length - 1];
+    if (minIdx === maxIdx) {
+        rangeStr = tierNames[minIdx];
+    } else {
+        rangeStr = `${tierNames[minIdx]} ~ ${tierNames[maxIdx]}`;
+    }
+  }
+
+  // 4. 감액 조건 판별 (전체 로직은 '선택된 계약 물량 단계'를 기준으로 동작)
+  const isUnder300 = currentTier < 300;
+  
+  let uncappedAB = 0;
+  if (document.getElementById('chkSys').checked) uncappedAB += 100;
+  if (document.getElementById('chkBar').checked) uncappedAB += 50;
+  
+  if (!isUnder300) {
+    uncappedAB += parseInt(document.getElementById('selDrop').value);
+    if (document.getElementById('chkSpecial').checked) uncappedAB += 200;
+    
+    if (document.getElementById('chkPeriodDisc').checked) {
+      const p = document.getElementById('selPeriod').value;
+      uncappedAB += getPeriodDiscount(currentTier, p);
+    }
+  }
+
+  const periodSel = document.getElementById('selPeriod').value;
+  const capMap = { new: 500, long1: 550, long3: 600 };
+  let maxCap = capMap[periodSel];
+  let cappedAB = Math.min(uncappedAB, maxCap);
+
+  // C그룹 (초소형, 소상공인)
+  const isUltraChecked = document.getElementById('chkUltra').checked && currentTier >= 1000;
+  const isSosangChecked = document.getElementById('chkSosang').checked;
+  
+  let sosangDisc = 0;
+  if (currentTier >= 20000) sosangDisc = 100;
+  else if (currentTier >= 10000) sosangDisc = 150;
+  else sosangDisc = 200;
+
+  // 5. 비용 합산
+  let totalBaseCost = 0;
+  let totalDiscCost = 0;
+
+  for (let i = 0; i < 4; i++) {
+    let q = qtys[i];
+    if (q === 0) continue;
+
+    let base = rates[i];
+    
+    let cDisc = 0;
+    if (isUltraChecked && i === 0) cDisc += 100; // 초소형 특례
+    if (isSosangChecked && (i === 0 || i === 1 || i === 2)) cDisc += sosangDisc; // 5kg 이하 적용
+
+    let appliedDiscount = cappedAB + cDisc;
+    let finalRate = base - appliedDiscount;
+    
+    totalBaseCost += (base * q);
+    totalDiscCost += (finalRate * q);
+  }
+
+  // 6. 최종 결과 렌더링
+  let avgBase = Math.round(totalBaseCost / totalInputQty);
+  let avgDisc = Math.round(totalDiscCost / totalInputQty);
+  
+  document.getElementById('resBaseAvg').innerHTML = `${avgBase.toLocaleString()}<span>원</span>`;
+  document.getElementById('resDiscAvg').innerHTML = `${avgDisc.toLocaleString()}<span>원</span>`;
+  
+  document.getElementById('resSummary').innerHTML = 
+    `<span class="range-text">적용된 요금구간: [ ${rangeStr} ]</span>` +
+    `현재 비중 적용 시, 건당 평균 <span class="highlight-red">${(avgBase - avgDisc).toLocaleString()}원</span> 절감 효과!`;
+}
+
+// 초기 계산 트리거
+calculate();
+</script>
+</body>
+</html>
